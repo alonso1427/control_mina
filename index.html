@@ -1,0 +1,3952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carta Gantt — Plan Semanal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #f4f3f0;
+    --surface: #ffffff;
+    --border: #e2e0db;
+    --border-dark: #ccc9c2;
+    --text: #1a1916;
+    --text-muted: #6b6860;
+    --text-faint: #a8a59f;
+    --accent: #1a56db;
+    --accent-bg: #eff4ff;
+    --ok-bg: #d1fae5; --ok-text: #065f46; --ok-border: #6ee7b7;
+    --atr-bg: #fef3c7; --atr-text: #92400e; --atr-border: #fcd34d;
+    --crit-bg: #fee2e2; --crit-text: #991b1b; --crit-border: #fca5a5;
+    --plan-bg: #e0f2fe; --plan-text: #075985; --plan-border: #7dd3fc;
+    --gantt-plan:  #7dd3fc;
+    --gantt-reprg: #fbbf24;
+    --gantt-empty: #e5e7eb;
+    --row-hover: #fafaf8;
+    --header-bg: #1e1d1a;
+    --header-text: #f5f4f1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 0 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    border-bottom: 1px solid #333;
+  }
+  .topbar-title {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  .topbar-badge {
+    background: #2d2c29;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .topbar-spacer { flex: 1; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .topbar input[type=text] {
+    background: #2d2c29;
+    border: 1px solid #444;
+    color: #eee;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    width: 180px;
+    font-family: inherit;
+  }
+  .topbar input::placeholder { color: #666; }
+  .topbar select {
+    background: #2d2c29;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 500; font-family: inherit;
+    padding: 5px 12px; border-radius: 4px; cursor: pointer;
+    border: none; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-ghost { background: #2d2c29; border: 1px solid #444; color: #ccc; }
+  .btn-sm { font-size: 11px; padding: 3px 9px; }
+  .btn-danger { background: #dc2626; color: #fff; }
+
+  /* ── SUB TOOLBAR ── */
+  .subtoolbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 48px;
+    z-index: 190;
+  }
+  .subtoolbar label { font-size: 11px; color: var(--text-muted); }
+  .subtoolbar select, .subtoolbar input[type=text] {
+    font-size: 12px; padding: 4px 8px; border: 1px solid var(--border);
+    border-radius: 4px; font-family: inherit; background: var(--surface); color: var(--text);
+  }
+  .summary-pills { display: flex; gap: 6px; margin-left: auto; }
+  .pill {
+    font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .pill-ok { background: var(--ok-bg); color: var(--ok-text); }
+  .pill-ok .dot { background: var(--gantt-ok); }
+  .pill-atr { background: var(--atr-bg); color: var(--atr-text); }
+  .pill-atr .dot { background: var(--gantt-atr); }
+  .pill-crit { background: var(--crit-bg); color: var(--crit-text); }
+  .pill-crit .dot { background: var(--gantt-crit); }
+  .pill-plan { background: var(--plan-bg); color: var(--plan-text); }
+  .pill-plan .dot { background: #3b82f6; }
+
+  /* ── TABLE WRAPPER ── */
+  /* ── LAYOUT 2 COLS ── */
+  .page-layout {
+    display: flex; align-items: flex-start; min-height: calc(100vh - 130px);
+  }
+  .gantt-main {
+    flex: 1; min-width: 0; overflow: hidden;
+  }
+  .threats-sidebar {
+    width: 300px; min-width: 280px; max-width: 320px;
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    display: flex; flex-direction: column;
+    height: calc(100vh - 130px);
+    position: sticky; top: 0;
+    overflow: hidden;
+  }
+  .threats-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .threats-title {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .threats-title .icon { font-size: 15px; }
+  .threats-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700;
+    border-radius: 10px; padding: 1px 6px; min-width: 18px;
+  }
+  .threats-count.has-crit { background: #fee2e2; color: #991b1b; }
+  .btn-new-threat {
+    font-size: 11px; font-weight: 500; font-family: inherit;
+    padding: 4px 9px; border-radius: 4px; cursor: pointer;
+    background: #1e1d1a; color: #f5f4f1; border: none;
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  .btn-new-threat:hover { background: #3a3936; }
+  .threats-list {
+    flex: 1; overflow-y: auto; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .threats-list::-webkit-scrollbar { width: 4px; }
+  .threats-list::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 2px; }
+  .threat-card {
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); padding: 10px 12px;
+    cursor: pointer; transition: box-shadow .15s, border-color .15s;
+    position: relative;
+  }
+  .threat-card:hover { border-color: var(--border-dark); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .threat-card-top {
+    display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px;
+  }
+  .threat-sev {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+  }
+  .sev-high   { background: #ef4444; }
+  .sev-med    { background: #f59e0b; }
+  .sev-low    { background: #3b82f6; }
+  .threat-name {
+    font-size: 12px; font-weight: 600; color: var(--text); flex: 1; line-height: 1.35;
+  }
+  .threat-actions {
+    display: flex; gap: 3px; flex-shrink: 0;
+  }
+  .threat-btn {
+    background: none; border: none; cursor: pointer; color: var(--text-faint);
+    font-size: 13px; padding: 2px 4px; border-radius: 3px;
+    line-height: 1;
+  }
+  .threat-btn:hover { background: var(--border); color: var(--text-muted); }
+  .threat-desc {
+    font-size: 11px; color: var(--text-muted); line-height: 1.45;
+    margin-bottom: 6px; padding-left: 16px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .threat-meta {
+    padding-left: 16px; display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .threat-tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 500;
+    background: var(--border); color: var(--text-muted);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .threat-tag.resp { background: #ede9fe; color: #5b21b6; }
+  .threat-tag.impact { background: #fee2e2; color: #991b1b; }
+  .threat-empty {
+    text-align: center; padding: 40px 16px; color: var(--text-faint); font-size: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .threat-empty .big { font-size: 28px; }
+  /* threat modal */
+  #threatModal .modal { width: 480px; }
+  .sev-selector { display: flex; gap: 8px; margin-top: 4px; }
+  .sev-opt {
+    flex: 1; padding: 6px; border: 1.5px solid var(--border); border-radius: 5px;
+    text-align: center; cursor: pointer; font-size: 11px; font-weight: 500;
+    color: var(--text-muted); transition: all .15s;
+  }
+  .sev-opt:hover { border-color: var(--border-dark); }
+  .sev-opt.sel-high { border-color: #ef4444; background: #fee2e2; color: #991b1b; }
+  .sev-opt.sel-med  { border-color: #f59e0b; background: #fef3c7; color: #92400e; }
+  .sev-opt.sel-low  { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
+
+  .table-wrap { overflow-x: auto; padding: 16px 20px 80px; }
+
+  table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* ── THEAD ── */
+  thead tr.th-top th {
+    background: #1e1d1a;
+    color: #e5e4e0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    border-right: 1px solid #333;
+    white-space: nowrap;
+    text-align: center;
+  }
+  thead tr.th-top th.th-left { text-align: left; }
+  thead tr.th-sub th {
+    background: #2d2c29;
+    color: #aaa;
+    font-size: 10px;
+    font-weight: 400;
+    padding: 4px 8px;
+    border-right: 1px solid #3a3936;
+    border-bottom: 2px solid #555;
+    text-align: center;
+    white-space: nowrap;
+  }
+  thead tr.th-sub th.shift-a { color: #7dd3fc; }
+  thead tr.th-sub th.shift-b { color: #fbbf24; }
+  .th-day-group { border-left: 2px solid #444 !important; }
+
+  /* ── CATEGORY ROW ── */
+  tr.cat-row td {
+    background: #f0ede8;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 5px 12px;
+    border-top: 1px solid var(--border-dark);
+    border-bottom: 1px solid var(--border);
+  }
+  .cat-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #1e1d1a; color: #e5e4e0;
+    font-size: 10px; font-weight: 600;
+    width: 20px; height: 20px; border-radius: 3px;
+    margin-left: 8px;
+  }
+
+  /* ── DATA ROWS ── */
+  tbody tr.data-row {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  tbody tr.data-row:hover { background: var(--row-hover); }
+  tbody tr.data-row td {
+    padding: 6px 10px;
+    border-right: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .td-fase {
+    font-size: 11px; font-weight: 600; font-family: 'IBM Plex Mono', monospace;
+    color: #1e40af; white-space: nowrap;
+  }
+  .td-banco { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); }
+  .td-act { font-size: 12px; color: var(--text); max-width: 220px; }
+  .td-equip { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .td-pct { font-size: 12px; font-weight: 500; text-align: right; white-space: nowrap; }
+  .td-day { min-width: 54px; width: 54px; text-align: center; padding: 3px !important; }
+  .td-day.day-border-left { border-left: 2px solid #d4d0c9 !important; }
+
+  /* Gantt cell — two rows per cell: plan top, reprg bottom */
+  .gcell {
+    display: flex; flex-direction: column; gap: 2px; align-items: center;
+  }
+  .grow-plan, .grow-reprg {
+    width: 44px; height: 16px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 600; letter-spacing: .03em;
+    cursor: pointer; position: relative;
+  }
+  /* plan = celeste hatched */
+  .grow-plan.active {
+    background: repeating-linear-gradient(
+      45deg, #7dd3fc 0px, #7dd3fc 3px, #bae6fd 3px, #bae6fd 6px
+    );
+    border: 1.5px solid #38bdf8;
+    color: #075985;
+  }
+  .grow-plan.empty { background: transparent; border: 1.5px dashed #cbd5e1; }
+  .grow-plan.empty:hover { border-color: #7dd3fc; background: #f0f9ff; }
+  /* reprg = amarillo sólido */
+  .grow-reprg.active {
+    background: #fbbf24;
+    border: 1.5px solid #f59e0b;
+    color: #78350f;
+  }
+  .grow-reprg.empty { background: transparent; border: 1.5px dashed #cbd5e1; }
+  .grow-reprg.empty:hover { border-color: #fbbf24; background: #fffbeb; }
+  /* labels inside cells */
+  .gcell-label { font-size: 7px; color: #aaa; letter-spacing: .04em; line-height: 1; margin-bottom: 1px; text-align: left; width: 44px; }
+
+  /* progress bar in pct cell */
+  .pct-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .pbar { width: 50px; height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
+  .pbar-fill { height: 100%; border-radius: 2px; }
+
+  /* STATUS badge */
+  .status-badge {
+    font-size: 10px; font-weight: 500; padding: 2px 8px;
+    border-radius: 20px; white-space: nowrap; display: inline-block;
+  }
+  .s-ok   { background: var(--ok-bg);   color: var(--ok-text);   border: 1px solid var(--ok-border); }
+  .s-atr  { background: var(--atr-bg);  color: var(--atr-text);  border: 1px solid var(--atr-border); }
+  .s-crit { background: var(--crit-bg); color: var(--crit-text); border: 1px solid var(--crit-border); }
+  .s-plan { background: var(--plan-bg); color: var(--plan-text); border: 1px solid var(--plan-border); }
+
+  /* Extra columns */
+  .td-desc, .td-comment, .td-impact {
+    min-width: 160px; max-width: 200px; font-size: 11px; color: var(--text);
+    vertical-align: top !important; padding-top: 8px !important;
+  }
+  .td-img { min-width: 80px; text-align: center; }
+  .td-resp { min-width: 110px; white-space: nowrap; }
+  .avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    font-size: 10px; font-weight: 600; letter-spacing: .03em;
+    color: #fff; margin-right: 4px; flex-shrink: 0;
+  }
+  .resp-wrap { display: flex; align-items: center; gap: 4px; }
+  .resp-name { font-size: 11px; color: var(--text); }
+  .img-thumb {
+    width: 44px; height: 44px; object-fit: cover; border-radius: 4px;
+    border: 1px solid var(--border); cursor: pointer;
+  }
+  .img-placeholder {
+    width: 44px; height: 44px; border: 1.5px dashed var(--border-dark);
+    border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-faint); font-size: 18px;
+    transition: border-color .15s;
+  }
+  .img-placeholder:hover { border-color: var(--accent); color: var(--accent); }
+  .text-faint { color: var(--text-faint); font-style: italic; font-size: 11px; }
+  .inline-edit {
+    width: 100%; border: none; background: transparent;
+    font-family: inherit; font-size: 11px; color: var(--text); resize: none;
+    outline: none; line-height: 1.4;
+  }
+  .inline-edit:focus {
+    background: #fffbe8; border-radius: 3px; padding: 2px 4px;
+    box-shadow: 0 0 0 2px #fcd34d;
+  }
+  .row-actions {
+    display: none; gap: 4px;
+  }
+  tbody tr.data-row:hover .row-actions { display: flex; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+  }
+  .modal {
+    background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+    width: 560px; max-width: 100%; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .modal-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h3 { font-size: 14px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; font-size: 18px; cursor: pointer;
+    color: var(--text-muted); line-height: 1;
+  }
+  .modal-body { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modal-body .full { grid-column: 1 / -1; }
+  .field label {
+    display: block; font-size: 11px; color: var(--text-muted);
+    font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; font-size: 12px; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-family: inherit; background: var(--surface); color: var(--text);
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+  }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .modal-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+
+  /* ── ADD DAY MODAL ── */
+  #addDayModal .modal-body { grid-template-columns: 1fr; }
+
+  /* IMAGE MODAL */
+  .img-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.8);
+    display: flex; align-items: center; justify-content: center; z-index: 2000;
+  }
+  .img-modal-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 6px; }
+
+  /* ── ADD ROW BUTTON ── */
+  .add-row-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 20px; background: none; border: none;
+    color: var(--accent); font-size: 12px; font-family: inherit;
+    cursor: pointer; border-top: 1px solid var(--border);
+    width: 100%; transition: background .1s;
+  }
+  .add-row-btn:hover { background: var(--accent-bg); }
+
+  .tag-day-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #1e1d1a; color: #e5; font-size: 11px;
+    padding: 2px 8px; border-radius: 20px; margin: 2px;
+    border: 1px solid #444;
+  }
+  .tag-day-chip button {
+    background: none; border: none; color: #aaa; cursor: pointer;
+    font-size: 12px; line-height: 1; padding: 0;
+  }
+  .day-chips-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-top: 6px; }
+
+  /* Tooltip */
+  [title] { cursor: help; }
+
+  /* Scrollbar */
+  .table-wrap::-webkit-scrollbar { height: 6px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+  .hidden { display: none !important; }
+
+  /* ── COLUMN PANEL ── */
+  .col-panel-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 500; font-family: inherit;
+    padding: 4px 10px; border-radius: 4px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); white-space: nowrap;
+  }
+  .col-panel-btn:hover { background: var(--bg); }
+  .col-panel-btn .icon { font-size: 13px; }
+  .col-panel-wrap {
+    position: relative; display: inline-block;
+  }
+  .col-panel-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    z-index: 500; min-width: 220px; padding: 8px 0;
+  }
+  .col-panel-dropdown.open { display: block; }
+  .col-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 12px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+  }
+  .col-panel-header span { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+  .col-panel-header button { font-size: 11px; background: none; border: none; color: var(--accent); cursor: pointer; font-family: inherit; }
+  .col-panel-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 12px; cursor: grab; user-select: none;
+    transition: background .1s;
+  }
+  .col-panel-item:hover { background: var(--bg); }
+  .col-panel-item.dragging { opacity: .4; }
+  .col-panel-item.drag-over { border-top: 2px solid var(--accent); }
+  .col-panel-item .drag-handle {
+    color: var(--text-faint); font-size: 14px; cursor: grab; flex-shrink: 0;
+  }
+  .col-panel-item input[type=checkbox] { cursor: pointer; flex-shrink: 0; }
+  .col-panel-item label { font-size: 12px; color: var(--text); cursor: pointer; flex: 1; }
+  /* hidden columns */
+  th.col-vis-hidden, td.col-vis-hidden { display: none !important; }
+  /* drag cursor on th */
+  thead th[data-col] { cursor: grab; }
+  thead th[data-col].th-dragging { opacity: .4; }
+  thead th[data-col].th-drag-over { border-left: 3px solid #2563eb !important; }
+  /* Inline editable pct / estado */
+  .inline-pct {
+    width: 52px; border: 1px solid transparent; background: transparent;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+    color: var(--text); text-align: right; padding: 1px 3px; border-radius: 3px;
+    cursor: pointer;
+  }
+  .inline-pct:hover { border-color: var(--border-dark); background: #fff; }
+  .inline-pct:focus { outline: none; border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+  .inline-estado {
+    border: 1px solid transparent; background: transparent;
+    font-family: inherit; font-size: 10px; font-weight: 500;
+    border-radius: 20px; padding: 2px 7px; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+  }
+  .inline-estado:hover { border-color: var(--border-dark); }
+  .inline-estado:focus { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,.2); }
+  .inline-estado.s-ok   { background: var(--ok-bg);   color: var(--ok-text);   border-color: var(--ok-border); }
+  .inline-estado.s-atr  { background: var(--atr-bg);  color: var(--atr-text);  border-color: var(--atr-border); }
+  .inline-estado.s-crit { background: var(--crit-bg); color: var(--crit-text); border-color: var(--crit-border); }
+  .inline-estado.s-plan { background: var(--plan-bg); color: var(--plan-text); border-color: var(--plan-border); }
+
+  /* ── MULTI-SELECT FASE ── */
+  .fase-multiselect-wrap { position:relative; display:inline-block; }
+  .fase-multiselect-btn {
+    font-size:12px; font-family:inherit; padding:4px 10px; height:30px;
+    border-radius:4px; border:1px solid #444; background:#2a2927; color:#e8e6e1;
+    cursor:pointer; display:flex; align-items:center; gap:5px; white-space:nowrap;
+    min-width:120px;
+  }
+  .fase-multiselect-btn:hover { background:#3a3936; }
+  .fase-dropdown {
+    display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:600;
+    background:#fff; border:1px solid var(--border); border-radius:6px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); min-width:160px; padding:6px 0;
+  }
+  .fase-dropdown.open { display:block; }
+  .fase-dropdown-item {
+    display:flex; align-items:center; gap:8px; padding:5px 12px; cursor:pointer;
+    font-size:12px; color:var(--text);
+  }
+  .fase-dropdown-item:hover { background:var(--bg); }
+  .fase-dropdown-item input { cursor:pointer; flex-shrink:0; }
+  .fase-dd-footer { border-top:1px solid var(--border); padding:5px 12px; display:flex; gap:8px; }
+  .fase-dd-footer button { font-size:11px; background:none; border:none; color:var(--accent); cursor:pointer; font-family:inherit; }
+
+  /* ── COMPLIANCE BAR ── */
+  .compliance-bar {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:8px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .compliance-bar.hidden { display:none; }
+  .compliance-title { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+  .compliance-global {
+    display:flex; align-items:center; gap:8px; background:var(--bg);
+    border:1px solid var(--border); border-radius:6px; padding:4px 10px;
+  }
+  .compliance-global .pct-num { font-size:16px; font-weight:700; color:var(--text); font-family:'IBM Plex Mono',monospace; }
+  .compliance-global .pct-lbl { font-size:10px; color:var(--text-muted); }
+  .compliance-global .pct-bar-wrap { width:80px; }
+  .compliance-phases { display:flex; gap:8px; flex-wrap:wrap; }
+  .cph-card {
+    display:flex; flex-direction:column; gap:2px; background:var(--bg);
+    border:1px solid var(--border); border-radius:6px; padding:4px 10px;
+    min-width:80px; cursor:pointer; transition:border-color .15s;
+  }
+  .cph-card:hover { border-color:var(--border-dark); }
+  .cph-card.active { border-color:var(--accent); background:var(--accent-bg); }
+  .cph-name { font-size:10px; font-weight:600; color:var(--text-muted); }
+  .cph-pct  { font-size:14px; font-weight:700; color:var(--text); font-family:'IBM Plex Mono',monospace; }
+  .cph-mini-bar { height:3px; border-radius:2px; background:var(--border); overflow:hidden; }
+  .cph-mini-fill { height:100%; border-radius:2px; background:var(--accent); }
+  .compliance-toggle { margin-left:auto; font-size:11px; background:none; border:1px solid var(--border); border-radius:4px; padding:3px 8px; cursor:pointer; color:var(--text-muted); font-family:inherit; }
+  .compliance-toggle:hover { background:var(--bg); }
+
+  /* ── PANEL TOGGLE BTN ── */
+  .panel-toggle-bar {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:4px 20px; display:flex; align-items:center; gap:8px;
+    font-size:11px; color:var(--text-muted);
+  }
+  .panel-tab-btn {
+    font-size:11px; font-family:inherit; padding:3px 10px; border-radius:4px;
+    border:1px solid var(--border); background:var(--bg); color:var(--text-muted);
+    cursor:pointer; display:flex; align-items:center; gap:5px;
+  }
+  .panel-tab-btn.active { background:#1e1d1a; color:#f5f4f1; border-color:#1e1d1a; }
+  .panel-tab-btn:hover:not(.active) { background:var(--border); }
+  #modalCalGrid .cal-day { color: var(--text-faint); cursor: default; }
+  #modalCalGrid .cal-day.in-plan { color: var(--text-muted); cursor: pointer; border-color: var(--border); }
+  #modalCalGrid .cal-day.in-plan:hover { background: var(--accent-bg); border-color: #93c5fd; color: var(--accent); }
+  #modalCalGrid .cal-day.selected { background: #1e1d1a; color: #f5f4f1 !important; border-color: #1e1d1a; font-weight: 600; cursor: pointer; }
+  #modalCalGrid .cal-day.selected:hover { background: #3a3936; }
+
+  /* ── CALENDAR PICKER ── */
+  .cal-wrap { padding: 10px 12px 8px; min-width: 260px; }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-nav span { font-size: 13px; font-weight: 600; color: var(--text); }
+  .cal-nav button { background: none; border: 1px solid var(--border); border-radius: 4px; width: 26px; height: 26px; cursor: pointer; color: var(--text-muted); font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .cal-nav button:hover { background: var(--bg); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-dow { font-size: 10px; font-weight: 600; color: var(--text-faint); text-align: center; padding: 2px 0; text-transform: uppercase; }
+  .cal-day {
+    aspect-ratio: 1; border-radius: 5px; border: 1px solid transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; transition: all .1s;
+    color: var(--text-muted);
+  }
+  .cal-day:hover:not(.cal-empty) { background: var(--accent-bg); border-color: #93c5fd; color: var(--accent); }
+  .cal-day.cal-active { background: #1e1d1a; color: #f5f4f1; border-color: #1e1d1a; font-weight: 600; }
+  .cal-day.cal-active:hover { background: #3a3936; border-color: #3a3936; }
+  .cal-day.cal-today { border-color: var(--accent); }
+  .cal-day.cal-empty { cursor: default; }
+  .cal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .cal-footer span { font-size: 11px; color: var(--text-faint); }
+  .cal-footer button { font-size: 11px; background: none; border: none; color: var(--accent); cursor: pointer; font-family: inherit; padding: 0; }
+  .cal-active-count { font-size: 11px; font-weight: 600; color: var(--text); }
+    display: flex; gap: 12px; align-items: center;
+    font-size: 10px; color: var(--text-muted); padding: 6px 20px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  /* ── TABS ── */
+  .app-tab {
+    font-size:12px;font-weight:500;font-family:inherit;
+    padding:8px 16px;background:transparent;color:#a8a59f;
+    border:none;border-radius:5px 5px 0 0;cursor:pointer;
+    border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;
+  }
+  .app-tab:hover { color:#f5f4f1;background:rgba(255,255,255,.07); }
+  .app-tab.active { color:#c8a84b;border-bottom-color:#c8a84b;background:rgba(200,168,75,.08); }
+  /* ── EQUIP MULTI-SELECT ── */
+  .equip-ms-wrap { position:relative; }
+  .equip-ms-btn { width:100%;padding:6px 10px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:6px; }
+  .equip-ms-btn:hover { border-color:var(--border-dark); }
+  .equip-dd { display:none;position:absolute;top:calc(100%+2px);left:0;right:0;z-index:700;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 8px 20px rgba(0,0,0,.1);padding:4px 0; }
+  .equip-dd.open { display:block; }
+  .equip-dd-item { display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px;cursor:pointer; }
+  .equip-dd-item:hover { background:var(--bg); }
+  /* ── INLINE RESP ── */
+  .inline-resp { width:100%;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;color:var(--text);padding:2px 4px;border-radius:3px; }
+  .inline-resp:hover { border-color:var(--border-dark);background:#fff; }
+  .inline-resp:focus { outline:none;border-color:#3b82f6;background:#fff;box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+  /* ── COL/ROW RESIZE ── */
+  .col-resizer { position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:10; }
+  .col-resizer:hover,.col-resizer.resizing { background:rgba(59,130,246,.4); }
+  thead th { position:relative;overflow:visible; }
+  .row-resizer { position:absolute;bottom:0;left:0;right:0;height:4px;cursor:row-resize;background:transparent;z-index:10; }
+  .row-resizer:hover,.row-resizer.resizing { background:rgba(59,130,246,.4); }
+  tbody tr td:first-child { position:relative; }
+
+  /* ── GEO LIBRARY ── */
+  .geo-lib-fbtn {
+    font-size:11px;padding:3px 10px;border-radius:10px;
+    border:1px solid var(--border);background:var(--bg);
+    color:var(--text-muted);cursor:pointer;font-family:inherit;
+    transition:all .12s;
+  }
+  .geo-lib-fbtn:hover { border-color:var(--border-dark); }
+  .geo-lib-fbtn.active { background:#1e1d1a;color:#f5f4f1;border-color:#1e1d1a; }
+  .geo-lib-card {
+    background:#fff;border:1px solid var(--border);border-radius:8px;
+    overflow:hidden;transition:box-shadow .15s;
+  }
+  .geo-lib-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.1); }
+  .geo-lib-card img { width:100%;height:130px;object-fit:cover;display:block;cursor:pointer; }
+  .geo-lib-card-body { padding:10px 12px; }
+  .geo-lib-tipo-badge {
+    font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;
+    display:inline-block;margin-bottom:5px;
+  }
+  .tipo-trabajo { background:#dbeafe;color:#1d4ed8; }
+  .tipo-hazard  { background:#fef3c7;color:#92400e; }
+  /* ── GANTT IMG PANEL ── */
+  .gantt-img-thumb {
+    flex-shrink:0;width:110px;border-radius:5px;overflow:hidden;
+    border:1px solid var(--border);background:#f9f9f9;position:relative;
+    cursor:pointer;
+  }
+  .gantt-img-thumb img { width:110px;height:72px;object-fit:cover;display:block; }
+  .gantt-img-thumb-name {
+    font-size:10px;padding:3px 5px;color:var(--text-muted);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.9);
+    position:absolute;bottom:0;left:0;right:0;
+  }
+  .gantt-img-thumb-actions {
+    position:absolute;top:3px;right:3px;display:flex;gap:2px;opacity:0;transition:opacity .15s;
+  }
+  .gantt-img-thumb:hover .gantt-img-thumb-actions { opacity:1; }
+  .gantt-img-thumb-actions button {
+    font-size:10px;padding:1px 4px;border-radius:3px;border:none;cursor:pointer;font-family:inherit;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-block {
+    width: 22px; height: 12px; border-radius: 2px;
+    display: inline-block; border: 1px solid transparent;
+  }
+  .lb-ok   { background: var(--gantt-ok); border-color: #059669; }
+  .lb-atr  { background: var(--gantt-atr); border-color: #d97706; }
+  .lb-crit { background: var(--gantt-crit); border-color: #dc2626; }
+  .lb-plan { background: var(--gantt-plan); border: 1.5px dashed #60a5fa; }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginScreen" style="position:fixed;inset:0;background:#1e1d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;">
+  <div style="text-align:center;margin-bottom:32px;">
+    <!-- AMSA Logo SVG -->
+    <svg width="180" height="60" viewBox="0 0 180 60" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;">
+      <rect x="0" y="0" width="180" height="60" rx="6" fill="#c8a84b"/>
+      <text x="90" y="22" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="13" font-weight="700" fill="#1e1d1a" text-anchor="middle" letter-spacing="3">AMSA</text>
+      <text x="90" y="38" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="8" font-weight="500" fill="#1e1d1a" text-anchor="middle" letter-spacing="1.5">MINERA LOS PELAMBRES</text>
+      <line x1="16" y1="44" x2="164" y2="44" stroke="#1e1d1a" stroke-width="0.8" opacity="0.5"/>
+      <text x="90" y="54" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="7" fill="#1e1d1a" text-anchor="middle" letter-spacing="1" opacity="0.7">PROGRAMA OPERATIVO</text>
+    </svg>
+    <div style="color:#a8a59f;font-size:12px;letter-spacing:.05em;">Planificación Mina — Acceso Seguro</div>
+  </div>
+  <div style="background:#2a2927;border:1px solid #3a3936;border-radius:10px;padding:32px 36px;width:320px;">
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:11px;color:#a8a59f;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;">Usuario</label>
+      <input id="loginUser" type="text" placeholder="Usuario" autocomplete="username"
+        style="width:100%;padding:9px 12px;border-radius:5px;border:1px solid #3a3936;background:#1e1d1a;color:#f5f4f1;font-size:13px;font-family:inherit;outline:none;"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;color:#a8a59f;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;">Contraseña</label>
+      <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password"
+        style="width:100%;padding:9px 12px;border-radius:5px;border:1px solid #3a3936;background:#1e1d1a;color:#f5f4f1;font-size:13px;font-family:inherit;outline:none;"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()"
+      style="width:100%;padding:10px;background:#c8a84b;color:#1e1d1a;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.03em;">
+      Ingresar
+    </button>
+    <div id="loginError" style="color:#f87171;font-size:12px;text-align:center;margin-top:10px;display:none;">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- ══ APP SHELL (hidden until login) ══ -->
+<div id="appShell" style="display:none;">
+
+<!-- TABS BAR -->
+<div style="background:#1e1d1a;display:flex;align-items:flex-end;padding:0 20px;gap:2px;border-bottom:2px solid #c8a84b;">
+  <!-- Logo -->
+  <div style="margin-right:16px;display:flex;align-items:center;padding-bottom:6px;">
+    <svg width="80" height="26" viewBox="0 0 80 26" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="80" height="26" rx="3" fill="#c8a84b"/>
+      <text x="40" y="10" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="6" font-weight="700" fill="#1e1d1a" text-anchor="middle" letter-spacing="2">AMSA</text>
+      <text x="40" y="18" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="4" fill="#1e1d1a" text-anchor="middle" letter-spacing="1">MINERA LOS PELAMBRES</text>
+    </svg>
+  </div>
+  <button class="app-tab active" id="tab-gantt" onclick="switchTab('gantt')">📊 Carta Gantt</button>
+  <button class="app-tab" id="tab-produccion" onclick="switchTab('produccion')">⛏ Producción</button>
+  <button class="app-tab" id="tab-geotecnia" onclick="switchTab('geotecnia')">🪨 Geotecnia</button>
+  <button class="app-tab" id="tab-quiebre" onclick="switchTab('quiebre')">📉 Quiebre de Plan</button>
+  <button class="app-tab" id="tab-amenazas" onclick="switchTab('amenazas')">⚠️ Amenazas / Desviaciones</button>
+  <div style="flex:1"></div>
+  <button onclick="doLogout()" style="font-size:11px;background:none;border:1px solid #3a3936;color:#a8a59f;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;">Cerrar sesión</button>
+</div>
+
+<!-- TAB CONTENTS -->
+<div id="page-gantt" class="tab-page">
+<!-- GANTT HEADER -->
+<div style="background:#fff;border-bottom:1px solid var(--border);">
+
+  <!-- Row 1: Title + Week nav + Actions -->
+  <div style="display:flex;align-items:center;padding:10px 20px;gap:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:17px;font-weight:700;color:#1a1916;">Plan Semanal</span>
+        <span id="weekPhaseLabel" style="font-size:13px;font-weight:600;color:#3b82f6;background:#eff6ff;border-radius:4px;padding:2px 8px;"></span>
+        <span id="weekDateLabel" style="font-size:12px;color:#6b7280;"></span>
+        <span id="totalBadge" style="font-size:11px;background:#f3f4f6;color:#374151;border-radius:10px;padding:2px 8px;font-weight:500;"></span>
+      </div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <!-- Week navigator -->
+      <div style="display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+        <button onclick="weekNav(-1)" style="padding:5px 10px;background:var(--bg);border:none;cursor:pointer;font-size:14px;color:var(--text-muted);border-right:1px solid var(--border);">‹</button>
+        <span id="weekNavLabel" style="padding:5px 14px;font-size:12px;font-weight:500;color:var(--text);background:#fff;white-space:nowrap;"></span>
+        <button onclick="weekNav(1)" style="padding:5px 10px;background:var(--bg);border:none;cursor:pointer;font-size:14px;color:var(--text-muted);border-left:1px solid var(--border);">›</button>
+      </div>
+      <input type="text" id="searchInput" placeholder="🔍 Buscar actividad…" oninput="filterRows()" style="font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--border);font-family:inherit;width:180px;">
+      <div class="fase-multiselect-wrap" id="faseMsWrap">
+        <button class="fase-multiselect-btn" onclick="toggleFaseDropdown()" id="faseMsBtn" style="height:30px;">
+          🏷 Fases <span id="faseMsCount" style="font-size:10px;opacity:.7"></span>
+        </button>
+        <div class="fase-dropdown" id="faseDropdown">
+          <div class="fase-dropdown-item"><input type="checkbox" value="F9SE" onchange="filterRows()"> F9SE</div>
+          <div class="fase-dropdown-item"><input type="checkbox" value="F10N" onchange="filterRows()"> F10N</div>
+          <div class="fase-dropdown-item"><input type="checkbox" value="F11W" onchange="filterRows()" checked> F11W</div>
+          <div class="fase-dropdown-item"><input type="checkbox" value="F12N" onchange="filterRows()" checked> F12N</div>
+          <div class="fase-dropdown-item"><input type="checkbox" value="F12E" onchange="filterRows()"> F12E</div>
+          <div class="fase-dropdown-item"><input type="checkbox" value="Fuera de Fase" onchange="filterRows()"> Fuera de Fase</div>
+          <div class="fase-dd-footer"><button onclick="faseSelectAll()">Todas</button><button onclick="faseSelectNone()">Ninguna</button></div>
+        </div>
+      </div>
+      <select id="filterFase" style="display:none"></select>
+      <select id="filterEstado" onchange="filterRows()" style="font-size:12px;padding:5px 8px;border-radius:5px;border:1px solid var(--border);font-family:inherit;">
+        <option value="">Todos los estados</option>
+        <option value="ok">Ok</option>
+        <option value="atr">Atraso</option>
+        <option value="crit">Crítico</option>
+        <option value="plan">Planificado</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="openAddActivityModal()">＋ Actividad</button>
+    </div>
+  </div>
+
+  <!-- Row 2: KPI cards -->
+  <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">
+    <!-- Avance global -->
+    <div style="background:#1e293b;color:#fff;padding:12px 20px;min-width:200px;display:flex;flex-direction:column;justify-content:center;gap:4px;">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;">Avance Semanal</div>
+      <div id="kpiGlobal" style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;">0%</div>
+      <div class="pbar" style="height:5px;border-radius:3px;background:rgba(255,255,255,.15);"><div id="kpiGlobalBar" class="pbar-fill" style="width:0%;background:#3b82f6;height:5px;border-radius:3px;"></div></div>
+    </div>
+    <div id="kpiCards" style="display:flex;flex:1;border-left:1px solid var(--border);">
+      <!-- populated by JS -->
+    </div>
+    <!-- Compliance toggle + phases -->
+    <div style="display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--border);">
+      <div id="complianceInline" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <div id="compPhases" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+      </div>
+      <button onclick="toggleComplianceInline()" id="btnToggleCompliance" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text-muted);font-family:inherit;white-space:nowrap;">Ocultar</button>
+    </div>
+  </div>
+
+  <!-- Row 3: Mapa de fases (image panel) -->
+  <div id="mapPanel" style="position:relative;background:#1e1d1a;overflow:hidden;max-height:260px;transition:max-height .3s ease;">
+    <!-- image area -->
+    <div id="mapImgWrap" style="width:100%;min-height:120px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+      <div id="mapNoImg" style="color:#6b6860;text-align:center;padding:28px;">
+        <div style="font-size:13px;color:#a8a59f;font-weight:500;">🗺️ Mapa de Fases</div>
+        <div style="font-size:11px;color:#6b6860;margin-top:4px;">Carga una imagen del mapa de fases</div>
+      </div>
+      <img id="mapImg" src="" alt="Mapa de fases" style="display:none;width:100%;max-height:240px;object-fit:cover;">
+    </div>
+    <!-- overlay bar -->
+    <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;padding:6px 14px;background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent);">
+      <span style="font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center;gap:6px;">🗺️ Mapa de Fases</span>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button onclick="document.getElementById('mapFileInput').click()" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px);">📷 Cargar imagen</button>
+        <button onclick="toggleMapPanel()" id="mapToggleBtn" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px);">▲ Minimizar</button>
+        <input type="file" id="mapFileInput" accept="image/*" style="display:none" onchange="loadMapImage(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Subtoolbar (filters) -->
+  <div class="subtoolbar" style="border-top:none;border-bottom:1px solid var(--border);">
+    <label>Área:</label>
+    <select id="filterCat" onchange="filterRows()">
+      <option value="">Todas las áreas</option>
+    </select>
+    <label style="margin-left:6px">Semana:</label>
+    <!-- Week date range display -->
+    <span id="weekRangeLabel" style="font-size:11px;font-weight:600;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:3px 8px;"></span>
+    <label style="margin-left:6px">Fechas:</label>
+    <div class="col-panel-wrap" id="datePanelWrap">
+      <button class="col-panel-btn" onclick="toggleDatePanel()" id="datePanelBtn">
+        📅 Fechas <span id="datePanelCount" style="font-size:10px;color:var(--text-muted)"></span>
+      </button>
+      <div class="col-panel-dropdown" id="datePanelDropdown" style="min-width:300px;">
+        <div class="cal-wrap">
+          <div style="font-size:10px;color:#888;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">Ctrl+Clic para selección múltiple · Clic normal cambia selección</div>
+          <div class="cal-nav">
+            <button onclick="calPrevMonth()">‹</button>
+            <span id="calMonthLabel"></span>
+            <button onclick="calNextMonth()">›</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-footer">
+            <span class="cal-active-count" id="calActiveCount"></span>
+            <button onclick="calClearAll()">Limpiar todo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-panel-wrap" id="colPanelWrap">
+      <button class="col-panel-btn" onclick="toggleColPanel()" id="colPanelBtn">
+        ⊞ Columnas <span id="colPanelCount" style="font-size:10px;color:var(--text-muted)"></span>
+      </button>
+      <div class="col-panel-dropdown" id="colPanelDropdown">
+        <div class="col-panel-header">
+          <span>Columnas visibles</span>
+          <button onclick="colPanelShowAll()">Mostrar todas</button>
+        </div>
+        <div id="colPanelList"></div>
+      </div>
+    </div>
+    <div class="summary-pills" id="summaryPills"></div>
+  </div>
+</div><!-- /GANTT HEADER -->
+
+<!-- GANTT IMAGES PANEL (minimized strip) -->
+<div id="ganttImgPanel" style="border-bottom:1px solid var(--border);background:var(--surface);">
+  <div style="display:flex;align-items:center;gap:8px;padding:5px 16px;cursor:pointer;user-select:none;" onclick="toggleGanttImgPanel()">
+    <span id="ganttImgArrow" style="font-size:11px;color:var(--text-muted);">▶</span>
+    <span style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.04em;">IMÁGENES DEL PLAN</span>
+    <span id="ganttImgCount" style="font-size:10px;background:var(--border);color:var(--text-muted);border-radius:8px;padding:1px 6px;">0</span>
+    <button onclick="event.stopPropagation();document.getElementById('ganttImgFileInput').click()" style="font-size:11px;padding:2px 9px;background:#1e1d1a;color:#f5f4f1;border:none;border-radius:4px;cursor:pointer;font-family:inherit;">＋ Imagen</button>
+    <input type="file" id="ganttImgFileInput" accept="image/*" style="display:none" onchange="addGanttImage(event)">
+  </div>
+  <div id="ganttImgCarousel" style="overflow-x:auto;padding:0 16px 10px;display:none;">
+    <div id="ganttImgStrip" style="display:flex;gap:10px;align-items:flex-start;min-height:90px;">
+      <div style="font-size:11px;color:#aaa;align-self:center;font-style:italic;">Sin imágenes cargadas</div>
+    </div>
+  </div>
+</div><!-- /ganttImgPanel -->
+
+<div class="page-layout" style="display:block;">
+<!-- GANTT MAIN -->
+<div class="gantt-main" style="width:100%;">
+<!-- TABLE -->
+<div class="table-wrap">
+  <table id="ganttTable">
+    <thead id="ganttThead"></thead>
+    <tbody id="ganttTbody"></tbody>
+  </table>
+  <button class="add-row-btn" onclick="openAddActivityModal()">＋ Agregar actividad</button>
+</div>
+</div><!-- /gantt-main -->
+</div><!-- /page-layout -->
+
+<!-- ═══════════════ ADD ACTIVITY MODAL ═══════════════ -->
+<div class="modal-overlay hidden" id="activityModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="actModalTitle">Nueva Actividad</h3>
+      <button class="modal-close" onclick="closeActivityModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Fase</label>
+        <select id="mFase">
+          <option value="">— Seleccionar —</option>
+          <option value="F9SE">F9SE</option>
+          <option value="F10N">F10N</option>
+          <option value="F11W">F11W</option>
+          <option value="F12N">F12N</option>
+          <option value="F12E">F12E</option>
+          <option value="Fuera de Fase">Fuera de Fase</option>
+        </select>
+      </div>
+      <div class="field"><label>Banco</label><input id="mBanco" placeholder="B2825"></div>
+      <div class="field full"><label>Actividad</label><input id="mAct" placeholder="Patio 5 — Entrega patio total"></div>
+      <div class="field"><label>Equipo</label>
+        <div class="equip-ms-wrap" id="equipMsWrap">
+          <button type="button" class="equip-ms-btn" onclick="toggleEquipDd()" id="equipMsBtn">
+            <span id="equipMsLabel">— Seleccionar —</span>
+          </button>
+          <div class="equip-dd" id="equipDd">
+            <div class="equip-dd-item"><input type="checkbox" value="Bulldozer" onchange="updateEquipLabel()"> Bulldozer</div>
+            <div class="equip-dd-item"><input type="checkbox" value="Wheeldozer" onchange="updateEquipLabel()"> Wheeldozer</div>
+            <div class="equip-dd-item"><input type="checkbox" value="Moto" onchange="updateEquipLabel()"> Moto</div>
+            <div class="equip-dd-item"><input type="checkbox" value="Excavadora" onchange="updateEquipLabel()"> Excavadora</div>
+            <div class="equip-dd-item"><input type="checkbox" value="Cargador" onchange="updateEquipLabel()"> Cargador</div>
+          </div>
+        </div>
+        <input type="hidden" id="mEquip">
+      </div>
+      <div class="field"><label>Área</label>
+        <select id="mCat">
+          <option value="">— Seleccionar —</option>
+          <option value="P&T">P&amp;T</option>
+          <option value="Servicios Mina">Servicios Mina</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Trabajo Eléctrico">Trabajo Eléctrico</option>
+          <option value="Fuera de Fase">Fuera de Fase</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="field"><label>Estado</label>
+        <select id="mEstado">
+          <option value="plan">Planificado</option>
+          <option value="ok">Ok</option>
+          <option value="atr">Atraso</option>
+          <option value="crit">Crítico</option>
+        </select>
+      </div>
+      <div class="field"><label>Avance (%)</label><input type="number" id="mPct" min="0" max="100" value="0"></div>
+      <div class="field"><label>Responsable</label><input id="mResp" placeholder="Nombre responsable"></div>
+      <div class="field full">
+        <label>Días activos</label>
+        <div id="modalCalWrap" style="margin-top:8px;border:1px solid var(--border);border-radius:6px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <button type="button" onclick="modalCalPrev()" style="background:none;border:1px solid var(--border);border-radius:4px;width:26px;height:26px;cursor:pointer;color:var(--text-muted);font-size:14px;display:flex;align-items:center;justify-content:center;">‹</button>
+            <span id="modalCalLabel" style="font-size:13px;font-weight:600;color:var(--text);"></span>
+            <button type="button" onclick="modalCalNext()" style="background:none;border:1px solid var(--border);border-radius:4px;width:26px;height:26px;cursor:pointer;color:var(--text-muted);font-size:14px;display:flex;align-items:center;justify-content:center;">›</button>
+          </div>
+          <div class="cal-grid" id="modalCalGrid"></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-faint);">Solo aparecen los días del plan. Clic para activar/desactivar.</div>
+        </div>
+        <input type="hidden" id="dayShiftCheckboxes">
+      </div>
+      <div class="field full"><label>Descripción del trabajo</label>
+        <textarea id="mDesc" placeholder="Detalle de la actividad…"></textarea>
+      </div>
+      <div class="field full"><label>Comentario de desviación</label>
+        <textarea id="mComment" placeholder="Motivo o descripción de la desviación…"></textarea>
+      </div>
+      <div class="field full"><label>Impacto</label>
+        <textarea id="mImpact" placeholder="Descripción del impacto en producción u operaciones…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeActivityModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveActivity()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="img-modal-overlay hidden" id="imgViewModal" onclick="this.classList.add('hidden')">
+  <img id="imgViewSrc" src="" alt="Imagen adjunta">
+</div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="fileInput" accept="image/*" class="hidden">
+
+</div><!-- /page-gantt -->
+
+<!-- TAB: Producción -->
+<div id="page-produccion" class="tab-page" style="display:none;">
+<div style="background:var(--header-bg);color:var(--header-text);padding:0 20px;height:48px;display:flex;align-items:center;gap:16px;">
+  <span style="font-size:15px;font-weight:600;">⛏ Producción — Registro Diario</span>
+  <div style="flex:1"></div>
+  <div style="position:relative;" id="prodCalWrap">
+    <button onclick="toggleProdCal()" style="font-size:12px;padding:5px 12px;background:#2a2927;border:1px solid #444;color:#e8e6e1;border-radius:4px;cursor:pointer;font-family:inherit;">📅 Fechas</button>
+    <div id="prodCalDropdown" style="display:none;position:absolute;top:calc(100%+6px);right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:600;padding:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <button onclick="prodCalPrev()" style="background:none;border:1px solid var(--border);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:13px;">‹</button>
+        <span id="prodCalLabel" style="font-size:13px;font-weight:600;color:var(--text);min-width:120px;text-align:center;"></span>
+        <button onclick="prodCalNext()" style="background:none;border:1px solid var(--border);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:13px;">›</button>
+      </div>
+      <div class="cal-grid" id="prodCalGrid" style="min-width:220px;"></div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;">
+        <span id="prodCalCount" style="font-size:11px;font-weight:600;color:var(--text);"></span>
+        <button onclick="prodCalClear()" style="font-size:11px;background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;">Limpiar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="padding:16px 20px;overflow-x:auto;">
+  <table id="prodTable" style="border-collapse:collapse;font-family:'IBM Plex Sans',sans-serif;font-size:12px;width:auto;min-width:100%;">
+    <thead id="prodThead"></thead>
+    <tbody id="prodTbody"></tbody>
+  </table>
+</div>
+<!-- tooltip container -->
+<div id="prodTooltip" style="display:none;position:fixed;background:#1e1d1a;color:#f5f4f1;font-size:11px;padding:6px 10px;border-radius:5px;max-width:220px;z-index:9000;line-height:1.5;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.2);"></div>
+</div>
+
+<!-- TAB: Amenazas / Desviaciones -->
+<div id="page-amenazas" class="tab-page" style="display:none;">
+<div style="background:var(--header-bg);color:var(--header-text);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:15px;font-weight:600;">⚠️ Amenazas &amp; Desviaciones</span>
+  <div style="flex:1"></div>
+  <button onclick="openThreatModal()" style="font-size:12px;padding:5px 12px;background:#f59e0b;color:#1e1d1a;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-family:inherit;">＋ Nueva Amenaza</button>
+  <button onclick="openDeviationModal()" style="font-size:12px;padding:5px 12px;background:#3b82f6;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-family:inherit;">＋ Nueva Desviación</button>
+</div>
+
+<div style="display:flex;gap:0;height:calc(100vh - 90px);">
+  <!-- Amenazas panel -->
+  <div style="flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);">
+      <span style="font-size:13px;font-weight:600;">⚠️ Amenazas</span>
+      <span id="threatsCount" class="threats-count">0</span>
+      <div style="margin-left:auto;display:flex;gap:6px;font-size:11px;">
+        <button onclick="setThreatFilter('all')" id="tfAll" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:#1e1d1a;color:#f5f4f1;cursor:pointer;font-family:inherit;font-size:11px;">Todas</button>
+        <button onclick="setThreatFilter('active')" id="tfActive" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:11px;">Vigentes</button>
+        <button onclick="setThreatFilter('solved')" id="tfSolved" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:11px;">Solucionadas</button>
+      </div>
+    </div>
+    <div id="threatsList" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
+      <div class="threat-empty"><span class="big">🛡️</span><span>Sin amenazas registradas</span></div>
+    </div>
+  </div>
+  <!-- Desviaciones panel -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);">
+      <span style="font-size:13px;font-weight:600;">📋 Desviaciones</span>
+      <span id="deviationsCount" class="threats-count" style="background:#e0f2fe;color:#075985;">0</span>
+      <div style="margin-left:auto;display:flex;gap:6px;font-size:11px;">
+        <button onclick="setDevFilter('all')" id="dfAll" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:#1e1d1a;color:#f5f4f1;cursor:pointer;font-family:inherit;font-size:11px;">Todas</button>
+        <button onclick="setDevFilter('active')" id="dfActive" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:11px;">Vigentes</button>
+        <button onclick="setDevFilter('solved')" id="dfSolved" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:11px;">Solucionadas</button>
+      </div>
+    </div>
+    <div id="deviationsList" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
+      <div class="threat-empty"><span class="big">📋</span><span>Sin desviaciones registradas</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TAB: Geotecnia -->
+<div id="page-geotecnia" class="tab-page" style="display:none;">
+<div style="background:var(--header-bg);color:var(--header-text);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:15px;font-weight:600;">🪨 Geotecnia — Biblioteca de Imágenes</span>
+  <div style="flex:1"></div>
+  <button onclick="openGeoLibModal()" style="font-size:12px;padding:5px 14px;background:#c8a84b;color:#1e1d1a;border:none;border-radius:4px;cursor:pointer;font-weight:700;font-family:inherit;">＋ Nueva Imagen</button>
+</div>
+
+<!-- Filters -->
+<div style="padding:8px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span style="font-size:11px;font-weight:600;color:var(--text-muted);">Fase:</span>
+  <div id="geoLibFaseFilter" style="display:flex;gap:5px;flex-wrap:wrap;">
+    <button onclick="setGeoLibFase('all')" id="glf-all" class="geo-lib-fbtn active">Todas</button>
+    <button onclick="setGeoLibFase('F9SE')" id="glf-F9SE" class="geo-lib-fbtn">F9SE</button>
+    <button onclick="setGeoLibFase('F10N')" id="glf-F10N" class="geo-lib-fbtn">F10N</button>
+    <button onclick="setGeoLibFase('F11W')" id="glf-F11W" class="geo-lib-fbtn">F11W</button>
+    <button onclick="setGeoLibFase('F12N')" id="glf-F12N" class="geo-lib-fbtn">F12N</button>
+    <button onclick="setGeoLibFase('F12E')" id="glf-F12E" class="geo-lib-fbtn">F12E</button>
+    <button onclick="setGeoLibFase('Fuera de Fase')" id="glf-FdF" class="geo-lib-fbtn">Fuera de Fase</button>
+  </div>
+  <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
+  <span style="font-size:11px;font-weight:600;color:var(--text-muted);">Tipo:</span>
+  <button onclick="setGeoLibTipo('all')" id="glt-all" class="geo-lib-fbtn active">Todos</button>
+  <button onclick="setGeoLibTipo('trabajo')" id="glt-trabajo" class="geo-lib-fbtn">🔧 Trabajo</button>
+  <button onclick="setGeoLibTipo('hazard')" id="glt-hazard" class="geo-lib-fbtn">⚠️ Hazard</button>
+  <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
+  <button onclick="setGeoLibVigencia('all')" id="glv-all" class="geo-lib-fbtn active">Vigentes+Inactivas</button>
+  <button onclick="setGeoLibVigencia('active')" id="glv-active" class="geo-lib-fbtn">Solo Vigentes</button>
+  <span id="geoLibCount" style="margin-left:auto;font-size:11px;color:var(--text-muted);"></span>
+</div>
+
+<!-- Grid -->
+<div id="geoLibGrid" style="padding:16px 20px;overflow-y:auto;height:calc(100vh - 140px);display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;align-content:start;">
+  <div class="threat-empty" style="grid-column:1/-1;"><span class="big">🪨</span><span>Sin imágenes cargadas. Haz clic en "＋ Nueva Imagen".</span></div>
+</div>
+</div>
+
+</div>
+
+
+<!-- TAB: Quiebre de Plan -->
+<div id="page-quiebre" class="tab-page" style="display:none;">
+<div style="background:var(--header-bg);color:var(--header-text);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:15px;font-weight:600;">📉 Quiebre de Plan</span>
+  <div style="flex:1"></div>
+  <button onclick="openQuiebreModal()" style="font-size:12px;padding:5px 12px;background:#3b82f6;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-family:inherit;">＋ Nuevo Quiebre</button>
+</div>
+<div style="display:flex;flex-direction:column;height:calc(100vh - 90px);overflow:hidden;">
+  <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);">
+    <span style="font-size:13px;font-weight:600;">📉 Quiebres de Plan</span>
+    <span id="quiebreCount" class="threats-count" style="background:#e0f2fe;color:#075985;">0</span>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button onclick="setQuiebreFilter('all')" id="qfAll" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:#1e1d1a;color:#f5f4f1;cursor:pointer;font-family:inherit;font-size:11px;">Todos</button>
+      <button onclick="setQuiebreFilter('active')" id="qfActive" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:11px;">Vigentes</button>
+      <button onclick="setQuiebreFilter('solved')" id="qfSolved" style="padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:11px;">Solucionados</button>
+    </div>
+  </div>
+  <div id="quiebreList" style="flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-content:start;">
+    <div class="threat-empty" style="grid-column:1/-1;"><span class="big">📉</span><span>Sin quiebres de plan registrados</span></div>
+  </div>
+</div>
+</div>
+
+
+<!-- ═══════════════ THREAT MODAL ═══════════════ -->
+<div class="modal-overlay hidden" id="threatModal">
+  <div class="modal" style="width:500px">
+    <div class="modal-header">
+      <h3 id="threatModalTitle">Nueva Amenaza</h3>
+      <button class="modal-close" onclick="closeThreatModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Severidad</label>
+        <div class="sev-selector">
+          <div class="sev-opt sel-high" data-sev="high" onclick="selectSev('high')">🔴 Alta</div>
+          <div class="sev-opt" data-sev="med"  onclick="selectSev('med')">🟡 Media</div>
+          <div class="sev-opt" data-sev="low"  onclick="selectSev('low')">🔵 Baja</div>
+        </div>
+        <input type="hidden" id="tSev" value="high">
+      </div>
+      <div class="field full"><label>Amenaza</label>
+        <input id="tName" placeholder="Ej: Falla en equipo bulldozer BD-12">
+      </div>
+      <div class="field full"><label>Descripción</label>
+        <textarea id="tDesc" placeholder="Describe el contexto y origen de la amenaza…" rows="2"></textarea>
+      </div>
+      <div class="field full"><label>Impacto inmediato</label>
+        <textarea id="tImpact" placeholder="Consecuencia directa si no se actúa…" rows="2"></textarea>
+      </div>
+      <div class="field full"><label>Acción inmediata</label>
+        <textarea id="tAction" placeholder="Qué se debe hacer de inmediato…" rows="2"></textarea>
+      </div>
+      <div class="field"><label>Responsable de acción</label>
+        <input id="tResp" placeholder="Nombre o cargo">
+      </div>
+      <div class="field"><label>Fecha</label>
+        <input type="date" id="tDate">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeThreatModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveThreat()">Guardar amenaza</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="deviationModal">
+  <div class="modal" style="width:500px">
+    <div class="modal-header">
+      <h3 id="deviationModalTitle">Nueva Desviación</h3>
+      <button class="modal-close" onclick="closeDeviationModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Severidad</label>
+        <div class="sev-selector">
+          <div class="sev-opt sel-high" data-dsev="high" onclick="selectDevSev('high')">🔴 Alta</div>
+          <div class="sev-opt" data-dsev="med"  onclick="selectDevSev('med')">🟡 Media</div>
+          <div class="sev-opt" data-dsev="low"  onclick="selectDevSev('low')">🔵 Baja</div>
+        </div>
+        <input type="hidden" id="dSev" value="high">
+      </div>
+      <div class="field full"><label>Desviación</label>
+        <input id="dName" placeholder="Ej: Retraso en entrega Patio 7">
+      </div>
+      <div class="field full"><label>Descripción</label>
+        <textarea id="dDesc" placeholder="Describe el contexto de la desviación…" rows="2"></textarea>
+      </div>
+      <div class="field full"><label>Impacto inmediato</label>
+        <textarea id="dImpact" placeholder="Consecuencia directa si no se actúa…" rows="2"></textarea>
+      </div>
+      <div class="field full"><label>Acción inmediata</label>
+        <textarea id="dAction" placeholder="Qué se debe hacer de inmediato…" rows="2"></textarea>
+      </div>
+      <div class="field"><label>Responsable de acción</label>
+        <input id="dResp" placeholder="Nombre o cargo">
+      </div>
+      <div class="field"><label>Fecha</label>
+        <input type="date" id="dDate">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeDeviationModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDeviation()">Guardar desviación</button>
+    </div>
+  </div>
+</div><!-- ═══════════════ QUIEBRE MODAL ═══════════════ -->
+<div class="modal-overlay hidden" id="quiebreModal">
+  <div class="modal" style="width:500px">
+    <div class="modal-header">
+      <h3 id="qModalTitle">Nuevo Quiebre de Plan</h3>
+      <button class="modal-close" onclick="closeQuiebreModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Severidad</label>
+        <div class="sev-selector">
+          <div class="sev-opt sel-high" data-qsev="high" onclick="selectQuiebreSev('high')">🔴 Alta</div>
+          <div class="sev-opt" data-qsev="med"  onclick="selectQuiebreSev('med')">🟡 Media</div>
+          <div class="sev-opt" data-qsev="low"  onclick="selectQuiebreSev('low')">🔵 Baja</div>
+        </div>
+        <input type="hidden" id="qSev" value="high">
+      </div>
+      <div class="field full"><label>Quiebre de Plan</label>
+        <input id="qName" placeholder="Ej: Paro no programado sector norte">
+      </div>
+      <div class="field full"><label>Descripción</label>
+        <textarea id="qDesc" placeholder="Describe el contexto del quiebre…" rows="2"></textarea>
+      </div>
+      <div class="field full"><label>Impacto inmediato</label>
+        <textarea id="qImpact" placeholder="Consecuencia directa si no se actúa…" rows="2"></textarea>
+      </div>
+      <div class="field full"><label>Acción inmediata</label>
+        <textarea id="qAction" placeholder="Qué se debe hacer de inmediato…" rows="2"></textarea>
+      </div>
+      <div class="field"><label>Responsable de acción</label>
+        <input id="qResp" placeholder="Nombre o cargo">
+      </div>
+      <div class="field"><label>Fecha</label>
+        <input type="date" id="qDate">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeQuiebreModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveQuiebre()">Guardar quiebre</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: Nueva Imagen Geotecnia Library -->
+<div class="modal-overlay hidden" id="geoLibModal">
+  <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <h3 id="geoLibModalTitle">Nueva Imagen Geotecnia</h3>
+      <button class="modal-close" onclick="closeGeoLibModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Imagen</label>
+        <div id="geoLibPreviewWrap" style="border:2px dashed var(--border);border-radius:6px;padding:12px;text-align:center;cursor:pointer;min-height:80px;display:flex;align-items:center;justify-content:center;" onclick="document.getElementById('geoLibFileInput').click()">
+          <img id="geoLibPreview" src="" style="max-width:100%;max-height:180px;display:none;border-radius:4px;">
+          <div id="geoLibImgPlaceholder" style="color:var(--text-faint);font-size:12px;">📷 Clic para seleccionar imagen</div>
+        </div>
+        <input type="file" id="geoLibFileInput" accept="image/*" style="display:none" onchange="previewGeoLibImg(event)">
+      </div>
+      <div class="field full"><label>Título / Nombre</label>
+        <input id="geoLibName" placeholder="Ej: Talud F9SE — Sector Norte">
+      </div>
+      <div class="field"><label>Fase</label>
+        <select id="geoLibFase">
+          <option value="">— Seleccionar —</option>
+          <option value="F9SE">F9SE</option>
+          <option value="F10N">F10N</option>
+          <option value="F11W">F11W</option>
+          <option value="F12N">F12N</option>
+          <option value="F12E">F12E</option>
+          <option value="Fuera de Fase">Fuera de Fase</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo</label>
+        <select id="geoLibTipo">
+          <option value="trabajo">🔧 Trabajo</option>
+          <option value="hazard">⚠️ Hazard</option>
+        </select>
+      </div>
+      <div class="field full"><label>Descripción</label>
+        <textarea id="geoLibDesc" rows="2" placeholder="Descripción general de la imagen…"></textarea>
+      </div>
+      <div class="field full"><label>Trabajos pendientes</label>
+        <textarea id="geoLibPendientes" rows="2" placeholder="Listar trabajos pendientes asociados…"></textarea>
+      </div>
+      <div class="field full"><label>Comentario adicional</label>
+        <textarea id="geoLibComentario" rows="2" placeholder="Observaciones, riesgos u otro…"></textarea>
+      </div>
+      <div class="field"><label>Fecha</label>
+        <input type="date" id="geoLibFecha">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeGeoLibModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGeoLibImage()">Guardar imagen</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Ver imagen grande geotecnia -->
+<div class="modal-overlay hidden" id="geoLibViewModal" onclick="this.classList.add('hidden')" style="background:rgba(0,0,0,.85);">
+  <div onclick="event.stopPropagation()" style="background:#fff;border-radius:8px;max-width:90vw;max-height:90vh;overflow:auto;padding:20px;position:relative;">
+    <button onclick="document.getElementById('geoLibViewModal').classList.add('hidden')" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#666;">✕</button>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <img id="geoLibViewImg" src="" style="max-width:60vw;max-height:70vh;object-fit:contain;border-radius:4px;flex-shrink:0;">
+      <div id="geoLibViewInfo" style="min-width:200px;max-width:280px;"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /appShell -->
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────
+let days = [
+  {id:'d0', name:'Vie 08', shifts:['A','B']},
+  {id:'d1', name:'Sáb 09', shifts:['A','B']},
+  {id:'d2', name:'Dom 10', shifts:['A','B']},
+  {id:'d3', name:'Lun 11', shifts:['A','B']},
+  {id:'d4', name:'Mar 12', shifts:['A','B']},
+  {id:'d5', name:'Mié 13', shifts:['A','B']},
+  {id:'d6', name:'Jue 14', shifts:['A','B']},
+];
+
+let activities = [
+  {id:1,fase:'F9SE',banco:'B2825',act:'Patio 3 — Entregado, perfor...',equip:'P&T',cat:'Prep. y Tronadura',estado:'ok',pct:90,resp:'Carlos M.',desc:'Perforación y entrega de patio para siguiente fase.',comment:'',impact:'',img:null,
+    cells:{d0:{A:{plan:true,reprg:false},B:{plan:false,reprg:true}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{}}},
+  {id:2,fase:'F9SE',banco:'B2810',act:'Patio 4 — Entregado, perfor...',equip:'P&T',cat:'Prep. y Tronadura',estado:'ok',pct:100,resp:'Carlos M.',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{A:{plan:true,reprg:false}},d1:{A:{plan:true,reprg:false}},d2:{},d3:{},d4:{},d5:{},d6:{}}},
+  {id:3,fase:'F9SE',banco:'B2825',act:'Patio 5 — Limpieza GAP post t...',equip:'Equipo Mina',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{},d4:{A:{plan:true,reprg:false}},d5:{},d6:{}}},
+  {id:4,fase:'F9SE',banco:'B2810',act:'Patio 6 — Entrega patio total',equip:'SSMM y P&T',cat:'Prep. y Tronadura',estado:'plan',pct:25,resp:'Ana R.',desc:'Entrega completa del patio 6.',comment:'',impact:'',img:null,
+    cells:{d0:{A:{plan:true,reprg:false},B:{plan:true,reprg:false}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{A:{plan:true,reprg:false}}}},
+  {id:5,fase:'F9SE',banco:'B2825',act:'Patio 7 — Entrega patio total',equip:'SSMM y P&T',cat:'Prep. y Tronadura',estado:'atr',pct:60,resp:'Ana R.',desc:'',comment:'Retraso por falla en equipo DDMM.',impact:'Impacto en preparación de siguiente frente.',img:null,
+    cells:{d0:{},d1:{},d2:{A:{plan:true,reprg:true},B:{plan:false,reprg:true}},d3:{},d4:{},d5:{},d6:{}}},
+  {id:6,fase:'F9SE',banco:'B2810',act:'Patio 8 — Entrega patio total',equip:'SSMM y P&T',cat:'Prep. y Tronadura',estado:'atr',pct:15,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{},d4:{A:{plan:false,reprg:true}},d5:{},d6:{}}},
+  {id:7,fase:'F9SE',banco:'B2825',act:'Desborde',equip:'Bull',cat:'Prep. y Tronadura',estado:'crit',pct:25,resp:'Pedro L.',desc:'',comment:'Desborde inesperado en sector norte.',impact:'Paralización de tronadura 72h.',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{},d4:{},d5:{B:{plan:false,reprg:true}},d6:{}}},
+  {id:8,fase:'F9SE',banco:'—',act:'Tronadura F9SE — 257 kt',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'ok',pct:100,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{A:{plan:true,reprg:false}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{}}},
+  {id:9,fase:'F11W',banco:'—',act:'Tronadura F11W — 933 kt',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'ok',pct:100,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{A:{plan:true,reprg:false}},d2:{},d3:{},d4:{},d5:{},d6:{}}},
+  {id:10,fase:'F9SE',banco:'—',act:'Tronadura F9SE — 343 kt',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'atr',pct:70,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{A:{plan:true,reprg:true}},d3:{},d4:{},d5:{},d6:{}}},
+  {id:11,fase:'F12N',banco:'—',act:'Tronadura F12N 524 kt + F9S...',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{A:{plan:true,reprg:false}},d4:{},d5:{},d6:{}}},
+  {id:12,fase:'F11W',banco:'—',act:'Tronadura F11W 477kt + F9SE...',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{},d4:{},d5:{A:{plan:true,reprg:false}},d6:{}}},
+  {id:13,fase:'F11W',banco:'B3125',act:'Patio 1 — Entrega patio total',equip:'SSMM',cat:'Prep. y Tronadura',estado:'plan',pct:10,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{},d4:{A:{plan:true,reprg:false}},d5:{},d6:{}}},
+  {id:14,fase:'F11W',banco:'B3095',act:'Patio 3 — Entregado, perfor...',equip:'P&T',cat:'Prep. y Tronadura',estado:'atr',pct:95,resp:'Juan V.',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{A:{plan:true,reprg:false},B:{plan:false,reprg:true}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{}}},
+  {id:15,fase:'F11W',banco:'B3110',act:'Patio 5 — Entrega patio total',equip:'SSMM',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{A:{plan:true,reprg:false}},d3:{},d4:{},d5:{},d6:{}}},
+  {id:16,fase:'F11W',banco:'B3110',act:'Patio 9 — Entrega patio total',equip:'SSMM',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
+    cells:{d0:{},d1:{},d2:{},d3:{},d4:{},d5:{A:{plan:true,reprg:false}},d6:{}}},
+];
+
+// ─── CALENDAR DATE PICKER ────────────────────────────────────────────
+// days array holds active days: {id, name, date (Date obj), shifts}
+// We derive dayVisible from whether the day is in the days array at all.
+// Calendar state
+let calViewDate = new Date(); // month being shown
+
+const DOW_ES = ['Lu','Ma','Mi','Ju','Vi','Sá','Do'];
+const MON_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// Attach date objects to existing days (parse from name like "Vie 08", "Lun 11", etc.)
+// We'll store actual Date on each day for calendar tracking
+const DAY_NAME_ES = {Lun:1,Mar:2,Mié:3,Jue:4,Vie:5,Sáb:6,Dom:0};
+function parseDayDate(name) {
+  // e.g. "Vie 08", "Sáb 09" — use current month/year of calViewDate if no year stored
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    const dayNum = parseInt(parts[1]);
+    if (!isNaN(dayNum)) {
+      const d = new Date(calViewDate.getFullYear(), calViewDate.getMonth(), dayNum);
+      return d;
+    }
+  }
+  return null;
+}
+
+// Build a map of active day-dates for quick lookup: "YYYY-MM-DD" -> day obj
+function activeDayMap() {
+  const m = {};
+  days.forEach(d => {
+    if (d.date) {
+      m[dateKey(d.date)] = d;
+    } else {
+      // try to parse from name using current view month
+      const parsed = parseDayDate(d.name);
+      if (parsed) { d.date = parsed; m[dateKey(parsed)] = d; }
+    }
+  });
+  return m;
+}
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtDayName(d) {
+  const dows = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  return `${dows[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function buildCalendar() {
+  const grid = document.getElementById('calGrid');
+  const label = document.getElementById('calMonthLabel');
+  if (!grid || !label) return;
+  const year = calViewDate.getFullYear();
+  const month = calViewDate.getMonth();
+  label.textContent = `${MON_ES[month]} ${year}`;
+
+  const active = activeDayMap();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Day of week headers (Mon first)
+  grid.innerHTML = DOW_ES.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  // First day of month — shift so Monday=0
+  const firstDay = new Date(year, month, 1);
+  let startDow = firstDay.getDay(); // 0=Sun
+  startDow = (startDow + 6) % 7; // convert to Mon=0
+
+  for (let i = 0; i < startDow; i++) {
+    grid.innerHTML += `<div class="cal-empty cal-day"></div>`;
+  }
+
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    const k = dateKey(d);
+    const isActive = !!active[k];
+    const isToday = d.getTime() === today.getTime();
+    const cls = ['cal-day', isActive ? 'cal-active' : '', isToday ? 'cal-today' : ''].filter(Boolean).join(' ');
+    grid.innerHTML += `<div class="${cls}" onclick="calToggleDay('${k}',${year},${month},${day})" title="${fmtDayName(d)}">${day}</div>`;
+  }
+
+  const activeCount = days.length;
+  const countEl = document.getElementById('calActiveCount');
+  if (countEl) countEl.textContent = `${activeCount} día${activeCount!==1?'s':''} activo${activeCount!==1?'s':''}`;
+  updateDatePanelCount();
+}
+
+function calToggleDay(key, year, month, day) {
+  const active = activeDayMap();
+  if (active[key]) {
+    // remove this day
+    const d = active[key];
+    days = days.filter(x => x.id !== d.id);
+    // also remove from dayVisible
+    delete dayVisible[d.id];
+  } else {
+    // add this day with A+B shifts
+    const dateObj = new Date(year, month, day);
+    const id = 'd' + dateObj.getTime();
+    const newDay = { id, name: fmtDayName(dateObj), date: dateObj, shifts: ['A','B'] };
+    // insert in chronological order
+    days.push(newDay);
+    days.sort((a, b) => (a.date ? a.date.getTime() : 0) - (b.date ? b.date.getTime() : 0));
+    dayVisible[id] = true;
+    // ensure all activities have cell entry for this day
+    activities.forEach(a => { if (!a.cells[id]) a.cells[id] = {}; });
+  }
+  buildCalendar();
+  render();
+}
+
+function calClearAll() {
+  if (!confirm('¿Eliminar todos los días activos?')) return;
+  days = [];
+  dayVisible = {};
+  buildCalendar();
+  render();
+}
+
+function calPrevMonth() {
+  calViewDate = new Date(calViewDate.getFullYear(), calViewDate.getMonth()-1, 1);
+  buildCalendar();
+}
+function calNextMonth() {
+  calViewDate = new Date(calViewDate.getFullYear(), calViewDate.getMonth()+1, 1);
+  buildCalendar();
+}
+
+function toggleDatePanel() {
+  const dd = document.getElementById('datePanelDropdown');
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open')) {
+    // set calendar to month of first active day, or current month
+    if (days.length > 0 && days[0].date) {
+      calViewDate = new Date(days[0].date.getFullYear(), days[0].date.getMonth(), 1);
+    }
+    buildCalendar();
+  }
+}
+
+// Legacy stubs (kept for compatibility)
+function buildDatePanel() { buildCalendar(); }
+function toggleDayVis(id, vis) { dayVisible[id] = vis; updateDatePanelCount(); render(); }
+function dateShowAll() { days.forEach(d => dayVisible[d.id] = true); render(); }
+
+function updateDatePanelCount() {
+  const hidden = days.filter(d => dayVisible[d.id] === false).length;
+  const el = document.getElementById('datePanelCount');
+  if (el) el.textContent = hidden > 0 ? `(${hidden} oculto${hidden>1?'s':''})` : '';
+}
+
+// Close panels on outside click
+document.addEventListener('click', e => {
+  const dp = document.getElementById('datePanelWrap');
+  if (dp && !dp.contains(e.target)) document.getElementById('datePanelDropdown').classList.remove('open');
+  const cp = document.getElementById('colPanelWrap');
+  if (cp && !cp.contains(e.target)) document.getElementById('colPanelDropdown').classList.remove('open');
+});
+
+// ─── DATE VISIBILITY ─────────────────────────────────────────────────
+let dayVisible = {};
+function initDayVisible() {
+  days.forEach(d => {
+    if (dayVisible[d.id] === undefined) dayVisible[d.id] = true;
+    // attach date objects to initial days based on current month
+    if (!d.date) {
+      // initial days use May 2025 reference week (Vie 08 = May 8 2025, etc.)
+      const refMap = {d0:new Date(2025,4,8),d1:new Date(2025,4,9),d2:new Date(2025,4,10),d3:new Date(2025,4,11),d4:new Date(2025,4,12),d5:new Date(2025,4,13),d6:new Date(2025,4,14)};
+      if (refMap[d.id]) d.date = refMap[d.id];
+    }
+  });
+  // set initial calendar view to the month of the first day
+  if (days.length > 0 && days[0].date) {
+    calViewDate = new Date(days[0].date.getFullYear(), days[0].date.getMonth(), 1);
+  }
+}
+
+function visibleDays() { return days.filter(d => dayVisible[d.id] !== false); }
+
+let nextId = 17;
+let editingId = null;
+let pendingImgRowId = null;
+const AVATAR_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'];
+
+// ─── COLUMN VISIBILITY + ORDER ───────────────────────────────────────
+// col definitions: key, label, fixed (always in order, not reorderable for fixed cols)
+const COL_DEFS = [
+  {key:'fase',   label:'Fase',          fixed:true},
+  {key:'banco',  label:'Banco',         fixed:false},
+  {key:'act',    label:'Actividad',     fixed:true},
+  {key:'equip',  label:'Equipo',        fixed:false},
+  {key:'days',   label:'Fechas',        fixed:false},
+  {key:'pct',    label:'% Av.',         fixed:false},
+  {key:'estado', label:'Estado',        fixed:false},
+  {key:'desc',   label:'Descripción',   fixed:false},
+  {key:'img',    label:'Imagen',        fixed:false},
+  {key:'comment',label:'Desviación',    fixed:false},
+  {key:'resp',   label:'Responsable',   fixed:false},
+  {key:'impact', label:'Impacto',       fixed:false},
+];
+
+let colOrder = COL_DEFS.map(c => c.key);
+let colVisible = {};
+COL_DEFS.forEach(c => colVisible[c.key] = true);
+
+// ─── PANEL ───────────────────────────────────────────────────────────
+function toggleColPanel() {
+  const dd = document.getElementById('colPanelDropdown');
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open')) buildColPanel();
+}
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('colPanelWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('colPanelDropdown').classList.remove('open');
+  }
+});
+
+function buildColPanel() {
+  const list = document.getElementById('colPanelList');
+  list.innerHTML = '';
+  colOrder.forEach(key => {
+    const def = COL_DEFS.find(c => c.key === key);
+    if (!def) return;
+    const item = document.createElement('div');
+    item.className = 'col-panel-item';
+    item.dataset.key = key;
+    item.draggable = true;
+    item.innerHTML = `
+      <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
+      <input type="checkbox" id="chk_${key}" ${colVisible[key]?'checked':''} onchange="toggleColVis('${key}',this.checked)">
+      <label for="chk_${key}">${def.label}</label>`;
+    // drag events
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', key);
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const fromKey = e.dataTransfer.getData('text/plain');
+      if (fromKey === key) return;
+      const fi = colOrder.indexOf(fromKey);
+      const ti = colOrder.indexOf(key);
+      colOrder.splice(fi, 1);
+      colOrder.splice(ti, 0, fromKey);
+      buildColPanel();
+      render();
+    });
+    list.appendChild(item);
+  });
+  updateColPanelCount();
+}
+
+function toggleColVis(key, visible) {
+  colVisible[key] = visible;
+  applyColVisibility();
+  updateColPanelCount();
+}
+
+function colPanelShowAll() {
+  COL_DEFS.forEach(c => colVisible[c.key] = true);
+  buildColPanel();
+  applyColVisibility();
+  updateColPanelCount();
+}
+
+function updateColPanelCount() {
+  const hidden = COL_DEFS.filter(c => !colVisible[c.key]).length;
+  const el = document.getElementById('colPanelCount');
+  if (el) el.textContent = hidden > 0 ? `(${hidden} oculta${hidden>1?'s':''})` : '';
+}
+
+function applyColVisibility() {
+  COL_DEFS.forEach(def => {
+    const vis = colVisible[def.key];
+    document.querySelectorAll(`[data-col="${def.key}"]`).forEach(el => {
+      el.classList.toggle('col-vis-hidden', !vis);
+    });
+    // for days: also hide/show all day sub-columns
+    if (def.key === 'days') {
+      document.querySelectorAll('[data-col="day"]').forEach(el => {
+        el.classList.toggle('col-vis-hidden', !vis);
+      });
+      const grp = document.getElementById('thDayGroup');
+      if (grp) grp.classList.toggle('col-vis-hidden', !vis);
+    }
+  });
+}
+
+// ─── DRAG-DROP REORDER ON TH ─────────────────────────────────────────
+let dragSrcKey = null;
+function initThDrag() {
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    const key = th.dataset.col;
+    if (key === 'day') return; // skip sub-day headers
+    th.draggable = true;
+    th.addEventListener('dragstart', e => {
+      dragSrcKey = key;
+      th.classList.add('th-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    th.addEventListener('dragend', () => {
+      th.classList.remove('th-dragging');
+      document.querySelectorAll('.th-drag-over').forEach(el => el.classList.remove('th-drag-over'));
+    });
+    th.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (dragSrcKey && dragSrcKey !== key) th.classList.add('th-drag-over');
+    });
+    th.addEventListener('dragleave', () => th.classList.remove('th-drag-over'));
+    th.addEventListener('drop', e => {
+      e.preventDefault();
+      th.classList.remove('th-drag-over');
+      if (!dragSrcKey || dragSrcKey === key) return;
+      const fi = colOrder.indexOf(dragSrcKey);
+      const ti = colOrder.indexOf(key);
+      if (fi < 0 || ti < 0) return;
+      colOrder.splice(fi, 1);
+      colOrder.splice(ti, 0, dragSrcKey);
+      dragSrcKey = null;
+      render();
+      if (document.getElementById('colPanelDropdown').classList.contains('open')) buildColPanel();
+    });
+  });
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────
+function render() {
+  initDayVisible();
+  renderThead();
+  renderTbody();
+  updateSummary();
+  updateFilterOptions();
+  setTimeout(() => { applyColVisibility(); initThDrag(); initColResizers(); initRowResizers(); }, 0);
+}
+
+function renderThead() {
+  const thead = document.getElementById('ganttThead');
+  const vDays = visibleDays();
+  // each day has 2 sub-cols (A and B shifts shown as 1 column each per shift)
+  const totalDayCols = vDays.reduce((s,d) => s + d.shifts.length, 0);
+
+  let r1 = '<tr class="th-top">';
+  let r2 = '<tr class="th-sub">';
+
+  colOrder.forEach(key => {
+    if (key === 'fase') {
+      r1 += `<th class="th-left" data-col="fase" rowspan="2">Fase</th>`;
+    } else if (key === 'banco') {
+      r1 += `<th class="th-left" data-col="banco" rowspan="2">Banco</th>`;
+    } else if (key === 'act') {
+      r1 += `<th class="th-left" data-col="act" rowspan="2">Actividad</th>`;
+    } else if (key === 'equip') {
+      r1 += `<th class="th-left" data-col="equip" rowspan="2">Equipo</th>`;
+    } else if (key === 'days') {
+      if (totalDayCols > 0) {
+        r1 += `<th id="thDayGroup" colspan="${totalDayCols}" data-col="days" class="th-day-group">Fechas</th>`;
+        vDays.forEach(d => {
+          d.shifts.forEach(s => {
+            // Row 1 already has the date name via colspan; row 2 gets shift label
+            r2 += `<th data-col="day" data-day-id="${d.id}" data-shift="${s}" class="th-day-group shift-${s.toLowerCase()}">${s}</th>`;
+          });
+        });
+      }
+      // We output per-day date headers in r1 directly as separate ths for the correct 2-row visual
+      // Override: use per-day colspan headers instead of single group
+    } else if (key === 'pct') {
+      r1 += `<th data-col="pct" rowspan="2">% Av.</th>`;
+    } else if (key === 'estado') {
+      r1 += `<th data-col="estado" rowspan="2">Estado</th>`;
+    } else if (key === 'desc') {
+      r1 += `<th class="th-left" data-col="desc" rowspan="2">Descripción</th>`;
+    } else if (key === 'img') {
+      r1 += `<th data-col="img" rowspan="2">Imagen</th>`;
+    } else if (key === 'comment') {
+      r1 += `<th class="th-left" data-col="comment" rowspan="2">Desviación</th>`;
+    } else if (key === 'resp') {
+      r1 += `<th class="th-left" data-col="resp" rowspan="2">Responsable</th>`;
+    } else if (key === 'impact') {
+      r1 += `<th class="th-left" data-col="impact" rowspan="2">Impacto</th>`;
+    }
+  });
+  r1 += '<th rowspan="2"></th></tr>';
+  r2 += '</tr>';
+
+  // Build correct per-day header: replace single "Fechas" group with per-day colspan headers
+  // Rebuild r1 replacing the thDayGroup with individual day ths
+  if (colOrder.includes('days') && totalDayCols > 0) {
+    let r1fixed = '<tr class="th-top">';
+    let r2fixed = '<tr class="th-sub">';
+    colOrder.forEach(key => {
+      if (key === 'fase')    r1fixed += `<th class="th-left" data-col="fase" rowspan="2">Fase</th>`;
+      else if (key === 'banco')  r1fixed += `<th class="th-left" data-col="banco" rowspan="2">Banco</th>`;
+      else if (key === 'act')    r1fixed += `<th class="th-left" data-col="act" rowspan="2">Actividad</th>`;
+      else if (key === 'equip')  r1fixed += `<th class="th-left" data-col="equip" rowspan="2">Equipo</th>`;
+      else if (key === 'days') {
+        vDays.forEach(d => {
+          r1fixed += `<th colspan="${d.shifts.length}" class="th-day-group" data-col="days" data-day-id="${d.id}">${d.name}</th>`;
+          d.shifts.forEach(s => {
+            r2fixed += `<th data-col="day" data-day-id="${d.id}" data-shift="${s}" class="th-day-group shift-${s.toLowerCase()}">${s}</th>`;
+          });
+        });
+      }
+      else if (key === 'pct')    r1fixed += `<th data-col="pct" rowspan="2">% Av.</th>`;
+      else if (key === 'estado') r1fixed += `<th data-col="estado" rowspan="2">Estado</th>`;
+      else if (key === 'desc')   r1fixed += `<th class="th-left" data-col="desc" rowspan="2">Descripción</th>`;
+      else if (key === 'img')    r1fixed += `<th data-col="img" rowspan="2">Imagen</th>`;
+      else if (key === 'comment')r1fixed += `<th class="th-left" data-col="comment" rowspan="2">Desviación</th>`;
+      else if (key === 'resp')   r1fixed += `<th class="th-left" data-col="resp" rowspan="2">Responsable</th>`;
+      else if (key === 'impact') r1fixed += `<th class="th-left" data-col="impact" rowspan="2">Impacto</th>`;
+    });
+    r1fixed += '<th rowspan="2"></th></tr>';
+    r2fixed += '</tr>';
+    thead.innerHTML = r1fixed + r2fixed;
+  } else {
+    thead.innerHTML = r1 + r2;
+  }
+}
+
+function renderTbody() {
+  const tbody = document.getElementById('ganttTbody');
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const selFases = getSelectedFases();
+  const fEstado = document.getElementById('filterEstado').value;
+  const fCat = document.getElementById('filterCat').value;
+
+  const filtered = activities.filter(a => {
+    if (selFases.length > 0 && !selFases.includes(a.fase)) return false;
+    if (fEstado && a.estado !== fEstado) return false;
+    if (fCat && a.cat !== fCat) return false;
+    if (q && !a.act.toLowerCase().includes(q) && !a.banco.toLowerCase().includes(q) && !(a.equip||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  document.getElementById('totalBadge').textContent = `${filtered.length} de ${activities.length}`;
+
+  const groups = {};
+  filtered.forEach(a => {
+    if (!groups[a.cat]) groups[a.cat] = [];
+    groups[a.cat].push(a);
+  });
+
+  let html = '';
+  const totalCols = colOrder.length + visibleDays().reduce((s,d) => s + d.shifts.length, 0) + 1;
+
+  Object.entries(groups).forEach(([cat, rows]) => {
+    html += `<tr class="cat-row"><td colspan="${totalCols}">${cat} <span class="cat-badge">${rows.length}</span></td></tr>`;
+    rows.forEach(a => { html += activityRow(a); });
+  });
+
+  tbody.innerHTML = html;
+  initRowDrag();
+  setTimeout(initRowResizers, 0);
+}
+
+function activityRow(a) {
+  const sm = {ok:'s-ok',atr:'s-atr',crit:'s-crit',plan:'s-plan'}[a.estado] || 's-plan';
+  const pbarColor = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'}[a.estado] || '#3b82f6';
+  const initials = a.resp ? a.resp.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '';
+  const avatarColor = a.resp ? AVATAR_COLORS[a.resp.charCodeAt(0) % AVATAR_COLORS.length] : '#aaa';
+  const respHtml = a.resp
+    ? `<div class="resp-wrap"><div class="avatar" style="background:${avatarColor}">${initials}</div><span class="resp-name">${a.resp}</span></div>`
+    : `<span class="text-faint">Sin asignar</span>`;
+  const imgHtml = a.img
+    ? `<img src="${a.img}" class="img-thumb" onclick="viewImg('${a.img}')" title="Ver imagen">`
+    : `<div class="img-placeholder" onclick="pickImage(${a.id})" title="Adjuntar imagen">📷</div>`;
+
+  let cells = '';
+  colOrder.forEach(key => {
+    if (key === 'fase') {
+      cells += `<td data-col="fase" class="td-fase">${a.fase}</td>`;
+    } else if (key === 'banco') {
+      cells += `<td data-col="banco" class="td-banco">${a.banco}</td>`;
+    } else if (key === 'act') {
+      cells += `<td data-col="act" class="td-act"><div style="display:flex;align-items:center;gap:6px">
+        ${a.act}
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEdit(${a.id})" title="Editar">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteActivity(${a.id})" title="Eliminar">🗑</button>
+        </div></div></td>`;
+    } else if (key === 'equip') {
+      cells += `<td data-col="equip" class="td-equip">${a.equip}</td>`;
+    } else if (key === 'days') {
+      visibleDays().forEach((d, di) => {
+        d.shifts.forEach((s, si) => {
+          const cellData = (a.cells[d.id] || {})[s] || {plan:false, reprg:false};
+          const planActive = cellData.plan ? 'active' : 'empty';
+          const reprgActive = cellData.reprg ? 'active' : 'empty';
+          const borderLeft = si === 0 ? ' day-border-left' : '';
+          cells += `<td data-col="day" class="td-day${borderLeft}" title="${d.name} Turno ${s}">
+            <div class="gcell">
+              <div class="grow-plan ${planActive}" onclick="toggleCellPlan(${a.id},'${d.id}','${s}')" title="Planificado"></div>
+              <div class="grow-reprg ${reprgActive}" onclick="toggleCellReprg(${a.id},'${d.id}','${s}')" title="Reprogramado"></div>
+            </div></td>`;
+        });
+      });
+    } else if (key === 'pct') {
+      cells += `<td data-col="pct" class="td-pct"><div class="pct-wrap">
+        <input type="number" class="inline-pct" min="0" max="100" value="${a.pct}" title="Editar avance"
+          onchange="updatePct(${a.id},this.value)" onclick="this.select()">
+        <div class="pbar"><div class="pbar-fill" style="width:${a.pct}%;background:${pbarColor}"></div></div>
+      </div></td>`;
+    } else if (key === 'estado') {
+      cells += `<td data-col="estado" style="text-align:center">
+        <select class="inline-estado ${sm}" onchange="updateEstado(${a.id},this.value)" title="Cambiar estado">
+          <option value="ok"  ${a.estado==='ok'  ?'selected':''}>Ok</option>
+          <option value="atr" ${a.estado==='atr' ?'selected':''}>Atraso</option>
+          <option value="crit"${a.estado==='crit'?'selected':''}>Crítico</option>
+          <option value="plan"${a.estado==='plan'?'selected':''}>Planificado</option>
+        </select></td>`;
+    } else if (key === 'desc') {
+      cells += `<td data-col="desc" class="td-desc"><textarea class="inline-edit" rows="2" placeholder="Descripción…" onchange="updateField(${a.id},'desc',this.value)">${a.desc||''}</textarea></td>`;
+    } else if (key === 'img') {
+      cells += `<td data-col="img" class="td-img">${imgHtml}</td>`;
+    } else if (key === 'comment') {
+      cells += `<td data-col="comment" class="td-comment"><textarea class="inline-edit" rows="2" placeholder="Desviación…" onchange="updateField(${a.id},'comment',this.value)">${a.comment||''}</textarea></td>`;
+    } else if (key === 'resp') {
+      cells += `<td data-col="resp" class="td-resp">
+        <input class="inline-resp" value="${a.resp||''}" placeholder="Sin asignar"
+          onchange="updateField(${a.id},'resp',this.value)"
+          title="Editar responsable">
+      </td>`;
+    } else if (key === 'impact') {
+      cells += `<td data-col="impact" class="td-impact"><textarea class="inline-edit" rows="2" placeholder="Impacto…" onchange="updateField(${a.id},'impact',this.value)">${a.impact||''}</textarea></td>`;
+    }
+  });
+
+  return `<tr class="data-row" data-id="${a.id}" draggable="true">
+    ${cells}
+    <td style="min-width:36px;text-align:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <span class="row-drag-handle" title="Arrastrar para reordenar" style="cursor:grab;color:var(--text-faint);font-size:14px;line-height:1;user-select:none;">⠿</span>
+        <button class="btn btn-ghost btn-sm" onclick="openEdit(${a.id})">✏️</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+// ─── ROW DRAG REORDER ────────────────────────────────────────────────
+let dragRowId = null;
+function initRowDrag() {
+  document.querySelectorAll('tr.data-row').forEach(tr => {
+    tr.addEventListener('dragstart', e => {
+      dragRowId = parseInt(tr.dataset.id);
+      tr.style.opacity = '.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tr.addEventListener('dragend', () => { tr.style.opacity = ''; dragRowId = null; });
+    tr.addEventListener('dragover', e => {
+      e.preventDefault();
+      tr.style.borderTop = '2px solid #2563eb';
+    });
+    tr.addEventListener('dragleave', () => { tr.style.borderTop = ''; });
+    tr.addEventListener('drop', e => {
+      e.preventDefault();
+      tr.style.borderTop = '';
+      if (!dragRowId) return;
+      const targetId = parseInt(tr.dataset.id);
+      if (dragRowId === targetId) return;
+      const fi = activities.findIndex(a => a.id === dragRowId);
+      const ti = activities.findIndex(a => a.id === targetId);
+      if (fi < 0 || ti < 0) return;
+      const [moved] = activities.splice(fi, 1);
+      activities.splice(ti, 0, moved);
+      renderTbody();
+    });
+  });
+}
+
+// ─── CELL TOGGLE ─────────────────────────────────────────────────────
+function ensureCell(a, dayId, shift) {
+  if (!a.cells[dayId]) a.cells[dayId] = {};
+  if (!a.cells[dayId][shift]) a.cells[dayId][shift] = {plan:false, reprg:false};
+}
+function toggleCellPlan(id, dayId, shift) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  ensureCell(a, dayId, shift);
+  a.cells[dayId][shift].plan = !a.cells[dayId][shift].plan;
+  renderTbody(); updateSummary();
+}
+function toggleCellReprg(id, dayId, shift) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  ensureCell(a, dayId, shift);
+  a.cells[dayId][shift].reprg = !a.cells[dayId][shift].reprg;
+  renderTbody(); updateSummary();
+}
+
+// ─── INLINE FIELD UPDATE ─────────────────────────────────────────────
+function updateField(id, field, value) {
+  const a = activities.find(x => x.id === id);
+  if (a) a[field] = value;
+}
+
+function updatePct(id, value) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  a.pct = Math.min(100, Math.max(0, parseInt(value) || 0));
+  // update just the pbar fill without full re-render
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    const fill = row.querySelector('[data-col="pct"] .pbar-fill');
+    const colors = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'};
+    if (fill) { fill.style.width = a.pct + '%'; fill.style.background = colors[a.estado]||'#3b82f6'; }
+  }
+  updateSummary();
+}
+
+function updateEstado(id, value) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  a.estado = value;
+  // update select class and pbar color without full re-render
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    const sel = row.querySelector('.inline-estado');
+    if (sel) { sel.className = 'inline-estado ' + ({ok:'s-ok',atr:'s-atr',crit:'s-crit',plan:'s-plan'}[value]||'s-plan'); }
+    const fill = row.querySelector('[data-col="pct"] .pbar-fill');
+    const colors = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'};
+    if (fill) fill.style.background = colors[value]||'#3b82f6';
+  }
+  updateSummary();
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────
+function updateSummary() {
+  const counts = {ok:0, atr:0, crit:0, plan:0};
+  activities.forEach(a => { if (counts[a.estado] !== undefined) counts[a.estado]++; });
+  document.getElementById('summaryPills').innerHTML = `
+    <span class="pill pill-ok"><span class="dot"></span> ${counts.ok} Ok</span>
+    <span class="pill pill-atr"><span class="dot"></span> ${counts.atr} Atraso</span>
+    <span class="pill pill-crit"><span class="dot"></span> ${counts.crit} Crítico</span>
+    <span class="pill pill-plan"><span class="dot"></span> ${counts.plan} Planificado</span>
+  `;
+  updateKpiCards();
+  // update totalBadge
+  const tb = document.getElementById('totalBadge');
+  if (tb) tb.textContent = `${activities.length} actividades`;
+}
+
+function updateCompliance() {
+  const total = activities.length;
+  const done = activities.filter(a => a.estado === 'ok').length;
+  const globalPct = total > 0 ? Math.round(done / total * 100) : 0;
+  const el = document.getElementById('compGlobalPct');
+  const bar = document.getElementById('compGlobalBar');
+  if (el) el.textContent = globalPct + '%';
+  if (bar) { bar.style.width = globalPct + '%'; bar.style.background = globalPct >= 80 ? '#10b981' : globalPct >= 50 ? '#f59e0b' : '#ef4444'; }
+
+  // per phase
+  const faseMap = {};
+  activities.forEach(a => {
+    if (!faseMap[a.fase]) faseMap[a.fase] = {total:0, done:0};
+    faseMap[a.fase].total++;
+    if (a.estado === 'ok') faseMap[a.fase].done++;
+  });
+  const selFases = getSelectedFases();
+  const phContainer = document.getElementById('compPhases');
+  if (!phContainer) return;
+  phContainer.innerHTML = Object.entries(faseMap)
+    .filter(([f]) => selFases.length === 0 || selFases.includes(f))
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([fase, d]) => {
+      const pct = d.total > 0 ? Math.round(d.done/d.total*100) : 0;
+      const col = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+      return `<div class="cph-card" onclick="highlightFase('${fase}')">
+        <div class="cph-name">${fase}</div>
+        <div class="cph-pct">${pct}%</div>
+        <div class="cph-mini-bar"><div class="cph-mini-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>`;
+    }).join('');
+}
+
+function highlightFase(fase) {
+  document.querySelectorAll('#faseDropdown input').forEach(cb => cb.checked = cb.value === fase);
+  updateFaseMsBtn();
+  filterRows();
+}
+
+let complianceVisible = true;
+function toggleComplianceBar() {
+  complianceVisible = !complianceVisible;
+  const bar = document.getElementById('complianceBar');
+  if (bar) bar.classList.toggle('hidden', !complianceVisible);
+}
+
+// ─── MULTI-FASE FILTER ───────────────────────────────────────────────
+function getSelectedFases() {
+  return [...document.querySelectorAll('#faseDropdown input[type=checkbox]:checked')].map(cb => cb.value);
+}
+function toggleFaseDropdown() {
+  document.getElementById('faseDropdown').classList.toggle('open');
+}
+function faseSelectAll() {
+  document.querySelectorAll('#faseDropdown input[type=checkbox]').forEach(cb => cb.checked = true);
+  updateFaseMsBtn(); filterRows();
+}
+function faseSelectNone() {
+  document.querySelectorAll('#faseDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
+  updateFaseMsBtn(); filterRows();
+}
+function updateFaseMsBtn() {
+  const sel = getSelectedFases();
+  const total = document.querySelectorAll('#faseDropdown input[type=checkbox]').length;
+  const el = document.getElementById('faseMsCount');
+  if (el) el.textContent = sel.length === 0 ? '(ninguna)' : sel.length === total ? '' : `(${sel.length})`;
+}
+document.addEventListener('click', e => {
+  const w = document.getElementById('faseMsWrap');
+  if (w && !w.contains(e.target)) document.getElementById('faseDropdown').classList.remove('open');
+});
+
+// ─── FILTERS ─────────────────────────────────────────────────────────
+function updateFilterOptions() {
+  const cats  = [...new Set(activities.map(a => a.cat))].sort();
+  const fCat  = document.getElementById('filterCat');
+  const prevC = fCat.value;
+  fCat.innerHTML  = '<option value="">Todas las áreas</option>' + cats.map(c=>`<option value="${c}"${c===prevC?' selected':''}>${c}</option>`).join('');
+}
+
+function filterRows() {
+  updateFaseMsBtn();
+  renderTbody();
+  updateSummary();
+  updateCompliance();
+}
+
+// ─── MODAL DAY CALENDAR ──────────────────────────────────────────────
+let modalCalViewDate = new Date();
+let modalSelectedCells = {}; // dayId -> {A:{plan,reprg}, B:{plan,reprg}}
+
+function buildModalCalendar() {
+  const grid = document.getElementById('modalCalGrid');
+  const label = document.getElementById('modalCalLabel');
+  if (!grid || !label) return;
+
+  const year = modalCalViewDate.getFullYear();
+  const month = modalCalViewDate.getMonth();
+  label.textContent = `${MON_ES[month]} ${year}`;
+
+  // build planDayMap: dateKey -> dayId (only days in the plan)
+  const planMap = {};
+  days.forEach(d => {
+    if (d.date) planMap[dateKey(d.date)] = d.id;
+  });
+
+  grid.innerHTML = DOW_ES.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay = new Date(year, month, 1);
+  let startDow = (firstDay.getDay() + 6) % 7;
+  for (let i = 0; i < startDow; i++) grid.innerHTML += `<div class="cal-empty cal-day"></div>`;
+
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    const k = dateKey(d);
+    const dayId = planMap[k];
+    const inPlan = !!dayId;
+    const isSelected = inPlan && !!(modalSelectedCells[dayId] &&
+      (Object.values(modalSelectedCells[dayId]).some(sh => sh && (sh.plan || sh.reprg))));
+    let cls = 'cal-day';
+    if (inPlan) cls += ' in-plan';
+    if (isSelected) cls += ' selected';
+    const onclick = inPlan ? `modalCalToggleDay('${dayId}')` : '';
+    const title = inPlan ? `${fmtDayName(d)} — clic para activar/desactivar` : fmtDayName(d);
+    grid.innerHTML += `<div class="${cls}" ${onclick ? `onclick="${onclick}"` : ''} title="${title}">${day}</div>`;
+  }
+}
+
+function modalCalToggleDay(dayId) {
+  const d = days.find(x => x.id === dayId);
+  if (!d) return;
+  if (!modalSelectedCells[dayId]) modalSelectedCells[dayId] = {};
+  // toggle: if any shift active → deactivate all; else activate all
+  const anyActive = d.shifts.some(s => {
+    const c = modalSelectedCells[dayId][s];
+    return c && (c.plan || c.reprg);
+  });
+  d.shifts.forEach(s => {
+    modalSelectedCells[dayId][s] = anyActive ? {plan:false, reprg:false} : {plan:true, reprg:false};
+  });
+  buildModalCalendar();
+}
+
+function modalCalPrev() {
+  modalCalViewDate = new Date(modalCalViewDate.getFullYear(), modalCalViewDate.getMonth()-1, 1);
+  buildModalCalendar();
+}
+function modalCalNext() {
+  modalCalViewDate = new Date(modalCalViewDate.getFullYear(), modalCalViewDate.getMonth()+1, 1);
+  buildModalCalendar();
+}
+
+// Init modal calendar to current plan month
+function initModalCal(existingCells) {
+  modalSelectedCells = {};
+  if (existingCells) {
+    // deep copy existing selection
+    days.forEach(d => {
+      if (existingCells[d.id]) {
+        modalSelectedCells[d.id] = {};
+        d.shifts.forEach(s => {
+          modalSelectedCells[d.id][s] = existingCells[d.id][s]
+            ? {...existingCells[d.id][s]}
+            : {plan:false, reprg:false};
+        });
+      }
+    });
+  }
+  // set calendar view to month of first plan day
+  if (days.length > 0 && days[0].date) {
+    modalCalViewDate = new Date(days[0].date.getFullYear(), days[0].date.getMonth(), 1);
+  } else {
+    modalCalViewDate = new Date();
+  }
+  buildModalCalendar();
+}
+
+// Legacy compatibility — kept as stub
+function buildDayShiftCheckboxes(selectedCells) {
+  initModalCal(selectedCells);
+}
+
+function openAddActivityModal() {
+  editingId = null;
+  document.getElementById('actModalTitle').textContent = 'Nueva Actividad';
+  ['mFase','mBanco','mAct','mResp','mDesc','mComment','mImpact'].forEach(id => document.getElementById(id).value = '');
+  setEquipValues('');
+  document.getElementById('mCat').value = '';
+  document.getElementById('mEstado').value = 'plan';
+  document.getElementById('mPct').value = '0';
+  buildDayShiftCheckboxes(null);
+  document.getElementById('activityModal').classList.remove('hidden');
+}
+
+function openEdit(id) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  editingId = id;
+  document.getElementById('actModalTitle').textContent = 'Editar Actividad';
+  document.getElementById('mFase').value   = a.fase || '';
+  document.getElementById('mBanco').value  = a.banco;
+  document.getElementById('mAct').value    = a.act;
+  setEquipValues(a.equip || '');
+  document.getElementById('mCat').value    = a.cat || '';
+  document.getElementById('mEstado').value = a.estado;
+  document.getElementById('mPct').value    = a.pct;
+  document.getElementById('mResp').value   = a.resp || '';
+  document.getElementById('mDesc').value   = a.desc || '';
+  document.getElementById('mComment').value= a.comment || '';
+  document.getElementById('mImpact').value = a.impact || '';
+  buildDayShiftCheckboxes(a.cells);
+  document.getElementById('activityModal').classList.remove('hidden');
+}
+
+function closeActivityModal() {
+  document.getElementById('activityModal').classList.add('hidden');
+  editingId = null;
+}
+
+function saveActivity() {
+  const act = document.getElementById('mAct').value.trim();
+  if (!act) { alert('Ingresa el nombre de la actividad'); return; }
+
+  // collect cells from modal calendar
+  const cells = {};
+  days.forEach(d => {
+    cells[d.id] = {};
+    d.shifts.forEach(s => {
+      const sel = (modalSelectedCells[d.id] || {})[s];
+      if (sel && (sel.plan || sel.reprg)) cells[d.id][s] = {...sel};
+    });
+  });
+
+  if (editingId) {
+    const a = activities.find(x => x.id === editingId);
+    Object.assign(a, {
+      fase: document.getElementById('mFase').value.trim() || 'N/A',
+      banco: document.getElementById('mBanco').value.trim() || '—',
+      act, equip: document.getElementById('mEquip').value.trim(),
+      cat: document.getElementById('mCat').value.trim() || 'General',
+      estado: document.getElementById('mEstado').value,
+      pct: parseInt(document.getElementById('mPct').value) || 0,
+      resp: document.getElementById('mResp').value.trim(),
+      desc: document.getElementById('mDesc').value.trim(),
+      comment: document.getElementById('mComment').value.trim(),
+      impact: document.getElementById('mImpact').value.trim(),
+      cells,
+    });
+  } else {
+    activities.push({
+      id: nextId++,
+      fase: document.getElementById('mFase').value.trim() || 'N/A',
+      banco: document.getElementById('mBanco').value.trim() || '—',
+      act, equip: document.getElementById('mEquip').value.trim(),
+      cat: document.getElementById('mCat').value.trim() || 'General',
+      estado: document.getElementById('mEstado').value,
+      pct: parseInt(document.getElementById('mPct').value) || 0,
+      resp: document.getElementById('mResp').value.trim(),
+      desc: document.getElementById('mDesc').value.trim(),
+      comment: document.getElementById('mComment').value.trim(),
+      impact: document.getElementById('mImpact').value.trim(),
+      img: null,
+      cells,
+    });
+  }
+  closeActivityModal();
+  render();
+}
+
+function deleteActivity(id) {
+  if (!confirm('¿Eliminar esta actividad?')) return;
+  activities = activities.filter(a => a.id !== id);
+  render();
+}
+
+// ─── IMAGE ───────────────────────────────────────────────────────────
+function pickImage(id) {
+  pendingImgRowId = id;
+  const fi = document.getElementById('fileInput');
+  fi.value = '';
+  fi.click();
+}
+document.getElementById('fileInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file || pendingImgRowId === null) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const a = activities.find(x => x.id === pendingImgRowId);
+    if (a) { a.img = e.target.result; renderTbody(); }
+    pendingImgRowId = null;
+  };
+  reader.readAsDataURL(file);
+});
+
+function viewImg(src) {
+  document.getElementById('imgViewSrc').src = src;
+  document.getElementById('imgViewModal').classList.remove('hidden');
+}
+
+// ─── CLOSE MODALS ON OVERLAY CLICK ───────────────────────────────────
+document.getElementById('activityModal').addEventListener('click', function(e) {
+  if (e.target === this) closeActivityModal();
+});
+// ─── THREATS ─────────────────────────────────────────────────────────
+let threats = [];
+let editingThreatId = null;
+let threatNextId = 1;
+
+function openThreatModal(id) {
+  editingThreatId = id || null;
+  const t = id ? threats.find(x => x.id === id) : null;
+  document.getElementById('threatModalTitle').textContent = t ? 'Editar Amenaza' : 'Nueva Amenaza';
+  document.getElementById('tName').value   = t ? t.name   : '';
+  document.getElementById('tDesc').value   = t ? t.desc   : '';
+  document.getElementById('tImpact').value = t ? t.impact : '';
+  document.getElementById('tAction').value = t ? t.action : '';
+  document.getElementById('tResp').value   = t ? t.resp   : '';
+  document.getElementById('tDate').value   = t ? (t.date||'') : new Date().toISOString().slice(0,10);
+  selectSev(t ? t.sev : 'high');
+  document.getElementById('threatModal').classList.remove('hidden');
+}
+function closeThreatModal() {
+  document.getElementById('threatModal').classList.add('hidden');
+  editingThreatId = null;
+}
+function selectSev(sev) {
+  document.getElementById('tSev').value = sev;
+  document.querySelectorAll('.sev-opt').forEach(el => {
+    el.classList.remove('sel-high','sel-med','sel-low');
+  });
+  const sel = document.querySelector(`.sev-opt[data-sev="${sev}"]`);
+  if (sel) sel.classList.add(`sel-${sev}`);
+}
+function saveThreat() {
+  const name = document.getElementById('tName').value.trim();
+  if (!name) { alert('Ingresa el nombre de la amenaza'); return; }
+  const t = {
+    id: editingThreatId || threatNextId++,
+    sev:    document.getElementById('tSev').value,
+    name,
+    desc:   document.getElementById('tDesc').value.trim(),
+    impact: document.getElementById('tImpact').value.trim(),
+    action: document.getElementById('tAction').value.trim(),
+    resp:   document.getElementById('tResp').value.trim(),
+    date:   document.getElementById('tDate').value,
+    ts:     new Date()
+  };
+  if (editingThreatId) {
+    const idx = threats.findIndex(x => x.id === editingThreatId);
+    if (idx >= 0) threats[idx] = t;
+  } else {
+    threats.unshift(t);
+  }
+  closeThreatModal();
+  renderThreats();
+}
+function deleteThreat(id) {
+  threats = threats.filter(x => x.id !== id);
+  renderThreats();
+}
+function renderThreats() {
+  const list = document.getElementById('threatsList');
+  const count = document.getElementById('threatsCount');
+  if (!list) return;
+  const hasCrit = threats.some(t => t.sev === 'high');
+  count.textContent = threats.length;
+  count.className = 'threats-count' + (hasCrit ? ' has-crit' : '');
+  if (threats.length === 0) {
+    list.innerHTML = `<div class="threat-empty"><span class="big">🛡️</span><span>Sin amenazas registradas</span></div>`;
+    return;
+  }
+  const filtered = threats.filter(t => {
+    if (threatFilter === 'active') return !t.solved;
+    if (threatFilter === 'solved') return !!t.solved;
+    return true;
+  });
+  const sevDot = {high:'sev-high', med:'sev-med', low:'sev-low'};
+  const sevLabel = {high:'Alta', med:'Media', low:'Baja'};
+  list.innerHTML = filtered.length === 0
+    ? `<div class="threat-empty"><span class="big">🛡️</span><span>${threatFilter==='solved'?'Sin amenazas solucionadas':'Sin amenazas vigentes'}</span></div>`
+    : filtered.map(t => `
+    <div class="threat-card" style="${t.solved?'opacity:.6;':''}">
+      <div class="threat-card-top">
+        <div class="threat-sev ${sevDot[t.sev]}"></div>
+        <div class="threat-name" style="${t.solved?'text-decoration:line-through;color:var(--text-muted);':''}">${t.name}</div>
+        <div class="threat-actions">
+          <button class="threat-btn" onclick="toggleThreatSolved(${t.id})" title="${t.solved?'Reabrir':'Marcar solucionada'}"
+            style="color:${t.solved?'#10b981':'#6b6860'};font-size:14px;">${t.solved?'✅':'☑'}</button>
+          <button class="threat-btn" onclick="openThreatModal(${t.id})" title="Editar">✏️</button>
+          <button class="threat-btn" onclick="deleteThreat(${t.id})" title="Eliminar" style="color:#ef4444">🗑</button>
+        </div>
+      </div>
+      ${t.solved?`<div style="font-size:10px;color:#10b981;font-weight:600;padding-left:16px;margin-bottom:4px;">✅ Solucionada</div>`:''}
+      ${t.desc ? `<div class="threat-desc">${t.desc}</div>` : ''}
+      <div class="threat-meta">
+        <span class="threat-tag">${sevLabel[t.sev]}</span>
+        ${t.impact ? `<span class="threat-tag impact">⚡ ${t.impact.slice(0,40)}${t.impact.length>40?'…':''}</span>` : ''}
+        ${t.resp   ? `<span class="threat-tag resp">👤 ${t.resp}</span>` : ''}
+        ${t.date   ? `<span class="threat-tag">📅 ${t.date}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+document.getElementById('threatModal').addEventListener('click', function(e) {
+  if (e.target === this) closeThreatModal();
+});
+
+// ─── SIDE PANEL TOGGLE ───────────────────────────────────────────────
+let activeSideTab = 'threats';
+let sidebarVisible = true;
+
+function toggleSidePanel(mode) {
+  const sidebar = document.getElementById('sidebarPanel');
+  const btnT = document.getElementById('btnShowThreats');
+  const btnD = document.getElementById('btnShowDeviations');
+  const btnN = document.getElementById('btnShowNone');
+  if (!sidebar) return;
+  if (mode === 'none') {
+    sidebar.style.display = 'none';
+    sidebarVisible = false;
+    btnT.classList.remove('active'); btnD.classList.remove('active'); btnN.classList.add('active');
+  } else {
+    sidebar.style.display = 'flex';
+    sidebarVisible = true;
+    btnN.classList.remove('active');
+    if (mode === 'threats') {
+      switchSideTab('threats');
+      btnT.classList.add('active'); btnD.classList.remove('active');
+    } else {
+      switchSideTab('deviations');
+      btnD.classList.add('active'); btnT.classList.remove('active');
+    }
+  }
+}
+
+function switchSideTab(tab) {
+  activeSideTab = tab;
+  const tList = document.getElementById('threatsList');
+  const dList = document.getElementById('deviationsList');
+  const tabT = document.getElementById('tabThreats');
+  const tabD = document.getElementById('tabDeviations');
+  if (tab === 'threats') {
+    if (tList) tList.style.display = 'flex';
+    if (dList) dList.style.display = 'none';
+    if (tabT) { tabT.style.background='#1e1d1a'; tabT.style.color='#f5f4f1'; }
+    if (tabD) { tabD.style.background='var(--surface)'; tabD.style.color='var(--text-muted)'; }
+  } else {
+    if (tList) tList.style.display = 'none';
+    if (dList) dList.style.display = 'flex';
+    if (tabD) { tabD.style.background='#1e1d1a'; tabD.style.color='#f5f4f1'; }
+    if (tabT) { tabT.style.background='var(--surface)'; tabT.style.color='var(--text-muted)'; }
+  }
+}
+
+function openNewSideItem() {
+  if (activeSideTab === 'threats') openThreatModal();
+  else openDeviationModal();
+}
+
+// ─── DEVIATIONS ──────────────────────────────────────────────────────
+let deviations = [];
+let editingDeviationId = null;
+let devNextId = 1;
+
+function openDeviationModal(id) {
+  editingDeviationId = id || null;
+  const d = id ? deviations.find(x => x.id === id) : null;
+  document.getElementById('deviationModalTitle').textContent = d ? 'Editar Desviación' : 'Nueva Desviación';
+  document.getElementById('dName').value   = d ? d.name   : '';
+  document.getElementById('dDesc').value   = d ? d.desc   : '';
+  document.getElementById('dImpact').value = d ? d.impact : '';
+  document.getElementById('dAction').value = d ? d.action : '';
+  document.getElementById('dResp').value   = d ? d.resp   : '';
+  document.getElementById('dDate').value   = d ? (d.date||'') : new Date().toISOString().slice(0,10);
+  selectDevSev(d ? d.sev : 'high');
+  document.getElementById('deviationModal').classList.remove('hidden');
+}
+function closeDeviationModal() {
+  document.getElementById('deviationModal').classList.add('hidden');
+  editingDeviationId = null;
+}
+function selectDevSev(sev) {
+  document.getElementById('dSev').value = sev;
+  document.querySelectorAll('[data-dsev]').forEach(el => {
+    el.classList.remove('sel-high','sel-med','sel-low');
+  });
+  const sel = document.querySelector(`[data-dsev="${sev}"]`);
+  if (sel) sel.classList.add(`sel-${sev}`);
+}
+function saveDeviation() {
+  const name = document.getElementById('dName').value.trim();
+  if (!name) { alert('Ingresa el nombre de la desviación'); return; }
+  const d = {
+    id:     editingDeviationId || devNextId++,
+    sev:    document.getElementById('dSev').value,
+    name,
+    desc:   document.getElementById('dDesc').value.trim(),
+    impact: document.getElementById('dImpact').value.trim(),
+    action: document.getElementById('dAction').value.trim(),
+    resp:   document.getElementById('dResp').value.trim(),
+    date:   document.getElementById('dDate').value,
+    ts:     new Date()
+  };
+  if (editingDeviationId) {
+    const idx = deviations.findIndex(x => x.id === editingDeviationId);
+    if (idx >= 0) deviations[idx] = d;
+  } else {
+    deviations.unshift(d);
+  }
+  closeDeviationModal();
+  renderDeviations();
+}
+function deleteDeviation(id) {
+  deviations = deviations.filter(x => x.id !== id);
+  renderDeviations();
+}
+function renderDeviations() {
+  const list = document.getElementById('deviationsList');
+  const count = document.getElementById('deviationsCount');
+  if (!list) return;
+  if (count) count.textContent = deviations.length;
+  const filteredD = deviations.filter(d => {
+    if (devFilter === 'active') return !d.solved;
+    if (devFilter === 'solved') return !!d.solved;
+    return true;
+  });
+  const sevDotD   = {high:'sev-high', med:'sev-med', low:'sev-low'};
+  const sevLabelD = {high:'Alta', med:'Media', low:'Baja'};
+  list.innerHTML = filteredD.length === 0
+    ? `<div class="threat-empty"><span class="big">📋</span><span>${devFilter==='solved'?'Sin desviaciones solucionadas':devFilter==='active'?'Sin desviaciones vigentes':'Sin desviaciones registradas'}</span></div>`
+    : filteredD.map(d => `
+    <div class="threat-card" style="${d.solved?'opacity:.6;':''}">
+      <div class="threat-card-top">
+        <div class="threat-sev ${sevDotD[d.sev]}"></div>
+        <div class="threat-name" style="${d.solved?'text-decoration:line-through;color:var(--text-muted);':''}">${d.name}</div>
+        <div class="threat-actions">
+          <button class="threat-btn" onclick="toggleDevSolved(${d.id})" title="${d.solved?'Reabrir':'Marcar solucionada'}"
+            style="color:${d.solved?'#10b981':'#6b6860'};font-size:14px;">${d.solved?'✅':'☑'}</button>
+          <button class="threat-btn" onclick="openDeviationModal(${d.id})" title="Editar">✏️</button>
+          <button class="threat-btn" onclick="deleteDeviation(${d.id})" title="Eliminar" style="color:#ef4444">🗑</button>
+        </div>
+      </div>
+      ${d.solved?`<div style="font-size:10px;color:#10b981;font-weight:600;padding-left:16px;margin-bottom:4px;">✅ Solucionada</div>`:''}
+      ${d.desc ? `<div class="threat-desc">${d.desc}</div>` : ''}
+      <div class="threat-meta">
+        <span class="threat-tag">${sevLabelD[d.sev]}</span>
+        ${d.impact ? `<span class="threat-tag impact">⚡ ${d.impact.slice(0,40)}${d.impact.length>40?'…':''}</span>` : ''}
+        ${d.resp   ? `<span class="threat-tag resp">👤 ${d.resp}</span>` : ''}
+        ${d.date   ? `<span class="threat-tag">📅 ${d.date}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+document.getElementById('deviationModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDeviationModal();
+});
+
+// ─── EQUIP MULTI-SELECT ──────────────────────────────────────────────
+function toggleEquipDd() {
+  document.getElementById('equipDd').classList.toggle('open');
+}
+function updateEquipLabel() {
+  const sel = [...document.querySelectorAll('#equipDd input:checked')].map(c=>c.value);
+  document.getElementById('equipMsLabel').textContent = sel.length ? sel.join(', ') : '— Seleccionar —';
+  document.getElementById('mEquip').value = sel.join(', ');
+}
+function setEquipValues(val) {
+  const vals = (val||'').split(',').map(v=>v.trim());
+  document.querySelectorAll('#equipDd input').forEach(cb => cb.checked = vals.includes(cb.value));
+  updateEquipLabel();
+}
+document.addEventListener('click', e => {
+  const w = document.getElementById('equipMsWrap');
+  if (w && !w.contains(e.target)) { const d = document.getElementById('equipDd'); if(d) d.classList.remove('open'); }
+});
+
+// ─── COL / ROW RESIZE ────────────────────────────────────────────────
+function initColResizers() {
+  document.querySelectorAll('#ganttThead th').forEach(th => {
+    if (th.querySelector('.col-resizer')) return;
+    const r = document.createElement('div');
+    r.className = 'col-resizer';
+    th.appendChild(r);
+    let startX, startW;
+    r.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      startX = e.clientX; startW = th.offsetWidth;
+      r.classList.add('resizing');
+      const onMove = ev => {
+        const newW = Math.max(30, startW + ev.clientX - startX);
+        th.style.width = newW + 'px'; th.style.minWidth = newW + 'px';
+        document.querySelectorAll(`td[data-col="${th.dataset.col}"]`).forEach(td => { td.style.width = newW+'px'; td.style.minWidth = newW+'px'; });
+      };
+      const onUp = () => { r.classList.remove('resizing'); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+function initRowResizers() {
+  document.querySelectorAll('#ganttTbody tr.data-row').forEach(tr => {
+    const firstTd = tr.querySelector('td');
+    if (!firstTd || firstTd.querySelector('.row-resizer')) return;
+    const r = document.createElement('div');
+    r.className = 'row-resizer';
+    firstTd.appendChild(r);
+    let startY, startH;
+    r.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      startY = e.clientY; startH = tr.offsetHeight;
+      r.classList.add('resizing');
+      const onMove = ev => {
+        const newH = Math.max(28, startH + ev.clientY - startY);
+        tr.style.height = newH + 'px';
+        tr.querySelectorAll('td').forEach(td => { td.style.height = newH+'px'; });
+      };
+      const onUp = () => { r.classList.remove('resizing'); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// ─── THREAT / DEVIATION FILTERS ──────────────────────────────────────
+let threatFilter = 'all';
+let devFilter = 'all';
+
+function setThreatFilter(f) {
+  threatFilter = f;
+  ['All','Active','Solved'].forEach(x => {
+    const b = document.getElementById('tf'+x.charAt(0).toUpperCase()+x.slice(1).replace('all','All').replace('active','Active').replace('solved','Solved'));
+  });
+  document.querySelectorAll('[id^="tf"]').forEach(b => {
+    b.style.background = 'var(--bg)'; b.style.color = 'var(--text-muted)';
+  });
+  const btn = document.getElementById('tf'+f.charAt(0).toUpperCase()+f.slice(1));
+  if(btn){btn.style.background='#1e1d1a';btn.style.color='#f5f4f1';}
+  renderThreats();
+}
+function setDevFilter(f) {
+  devFilter = f;
+  document.querySelectorAll('[id^="df"]').forEach(b => {
+    b.style.background = 'var(--bg)'; b.style.color = 'var(--text-muted)';
+  });
+  const btn = document.getElementById('df'+f.charAt(0).toUpperCase()+f.slice(1));
+  if(btn){btn.style.background='#1e1d1a';btn.style.color='#f5f4f1';}
+  renderDeviations();
+}
+function toggleThreatSolved(id) {
+  const t = threats.find(x => x.id === id);
+  if (t) { t.solved = !t.solved; renderThreats(); }
+}
+function toggleDevSolved(id) {
+  const d = deviations.find(x => x.id === id);
+  if (d) { d.solved = !d.solved; renderDeviations(); }
+}
+
+// ─── PRODUCCIÓN ──────────────────────────────────────────────────────
+// Filas principales (de la imagen)
+const PROD_MAIN_ROWS = [
+  {id:'ExPit',       label:'Extracción Mina (Ex Pit)', unit:'kt'},
+  {id:'Remanejo',    label:'Remanejo',                 unit:'kt'},
+  {id:'MovMina',     label:'Movimiento Mina',           unit:'kt'},
+  {id:'MovF9SE',     label:'Movimiento F9SE',           unit:'kt'},
+  {id:'MovF11W',     label:'Movimiento F11W',           unit:'kt'},
+  {id:'MovF12N',     label:'Movimiento F12N',           unit:'kt'},
+  {id:'AlimF12',     label:'% Alimentación F12',        unit:'%'},
+  {id:'TransSTMG',   label:'Transportado STMG',         unit:'kt'},
+  {id:'StockPlanta', label:'Stockpile Planta',          unit:'kt'},
+  {id:'CuBlockgrade',label:'Ley Cu Mina - Blockgrade',  unit:'%'},
+];
+// Equipos de detalle (agrupados)
+const PROD_EQUIPOS = ['PA03','PA04','PA05','PA07','PA10','PA11','PA14','BH09','BH12','CF10','CF11'];
+const ALL_PROD_IDS = [...PROD_MAIN_ROWS.map(r=>r.id), ...PROD_EQUIPOS];
+
+let prodDays = [];
+let prodData = {};
+let prodCalViewDate = new Date();
+let detailGroupOpen = true; // collapsible group
+
+function initProdDays() {
+  if (prodDays.length > 0) return;
+  const today = new Date();
+  const dow = today.getDay();
+  const monday = new Date(today); monday.setDate(today.getDate() - ((dow+6)%7));
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const id = 'pd_' + prodDateKey(d);
+    prodDays.push({ id, date: d, name: fmtProdDay(d) });
+  }
+  initProdData();
+}
+function initProdData() {
+  ALL_PROD_IDS.forEach(eq => {
+    if (!prodData[eq]) prodData[eq] = {};
+    prodDays.forEach(d => {
+      if (!prodData[eq][d.id]) prodData[eq][d.id] = {plan:'', real:'', note:''};
+    });
+  });
+}
+function prodDateKey(d) {
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtProdDay(d) {
+  const dows=['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
+  return `${dows[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+}
+
+function toggleDetallGroup() {
+  detailGroupOpen = !detailGroupOpen;
+  renderProdTable();
+}
+
+// calendar for produccion
+function toggleProdCal() {
+  const dd = document.getElementById('prodCalDropdown');
+  dd.style.display = dd.style.display==='none'?'block':'none';
+  if(dd.style.display==='block') buildProdCal();
+}
+document.addEventListener('click', e => {
+  const w = document.getElementById('prodCalWrap');
+  if(w && !w.contains(e.target)) { const d=document.getElementById('prodCalDropdown'); if(d) d.style.display='none'; }
+});
+function prodCalPrev() { prodCalViewDate=new Date(prodCalViewDate.getFullYear(),prodCalViewDate.getMonth()-1,1); buildProdCal(); }
+function prodCalNext() { prodCalViewDate=new Date(prodCalViewDate.getFullYear(),prodCalViewDate.getMonth()+1,1); buildProdCal(); }
+function prodCalClear() { prodDays=[]; initProdData(); buildProdCal(); renderProdTable(); }
+
+function buildProdCal() {
+  const grid=document.getElementById('prodCalGrid');
+  const label=document.getElementById('prodCalLabel');
+  if(!grid||!label) return;
+  const year=prodCalViewDate.getFullYear(), month=prodCalViewDate.getMonth();
+  label.textContent=`${MON_ES[month]} ${year}`;
+  const activeKeys=new Set(prodDays.map(d=>prodDateKey(d.date)));
+  grid.innerHTML=DOW_ES.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const firstDay=new Date(year,month,1);
+  let startDow=(firstDay.getDay()+6)%7;
+  for(let i=0;i<startDow;i++) grid.innerHTML+=`<div class="cal-empty cal-day"></div>`;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  for(let day=1;day<=daysInMonth;day++){
+    const d=new Date(year,month,day); const k=prodDateKey(d);
+    const isActive=activeKeys.has(k);
+    const cls='cal-day'+(isActive?' cal-active':'');
+    grid.innerHTML+=`<div class="${cls}" onclick="prodCalToggleDay('${k}',${year},${month},${day})" title="${fmtProdDay(d)}">${day}</div>`;
+  }
+  const c=document.getElementById('prodCalCount');
+  if(c) c.textContent=`${prodDays.length} día${prodDays.length!==1?'s':''}`;
+}
+function prodCalToggleDay(key,year,month,day) {
+  const idx=prodDays.findIndex(d=>prodDateKey(d.date)===key);
+  if(idx>=0){
+    prodDays.splice(idx,1);
+  } else {
+    const dateObj=new Date(year,month,day);
+    const id='pd_'+key;
+    prodDays.push({id,date:dateObj,name:fmtProdDay(dateObj)});
+    prodDays.sort((a,b)=>a.date-b.date);
+    initProdData();
+  }
+  buildProdCal();
+  renderProdTable();
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function realColor(realVal, planVal, hasReal) {
+  if (!hasReal || planVal === 0) return {color:'#374151', fw:'500'};
+  return realVal >= planVal
+    ? {color:'#15803d', fw:'700'}   // verde
+    : {color:'#dc2626', fw:'700'};  // rojo
+}
+function cumplPct(real, plan) {
+  if (!plan) return null;
+  return Math.round(real / plan * 100);
+}
+function fmtPct(pct) {
+  if (pct === null) return '—';
+  const col = pct >= 100 ? '#15803d' : pct >= 80 ? '#f59e0b' : '#dc2626';
+  const dot = pct >= 100 ? '🟢' : pct >= 80 ? '🟡' : '🔴';
+  return `<span style="color:${col};font-weight:700;">${dot} ${pct}%</span>`;
+}
+function fmtDiff(diff, unit) {
+  if (diff === null || diff === 0) return `<span style="color:#6b7280;">0</span>`;
+  const col = diff > 0 ? '#15803d' : '#dc2626';
+  const sign = diff > 0 ? '+' : '';
+  return `<span style="color:${col};font-weight:600;">${sign}${diff}${unit==='%'?'%':''}</span>`;
+}
+
+function prodRowHtml(id, label, unit, tdBase, tdLeft, isSubRow) {
+  const eqData = prodData[id] || {};
+  let rowPlan=0, rowReal=0, hasAnyReal=false;
+  let cells='';
+
+  prodDays.forEach(d=>{
+    const cell = eqData[d.id] || {plan:'',real:'',note:''};
+    const planVal = parseFloat(cell.plan)||0;
+    const realVal = parseFloat(cell.real)||0;
+    const hasReal = cell.real !== '';
+    rowPlan += planVal; rowReal += realVal;
+    if (hasReal) hasAnyReal = true;
+
+    const rc = realColor(realVal, planVal, hasReal);
+    const planStyle = `width:54px;border:1px solid #e5e7eb;background:#fff;text-align:center;font-size:11px;font-weight:500;color:#6b7280;padding:2px 3px;border-radius:3px;`;
+    const realStyle = `width:54px;border:1px solid #e5e7eb;background:#fff;text-align:center;font-size:11px;font-weight:${rc.fw};color:${rc.color};padding:2px 3px;border-radius:3px;`;
+
+    cells += `<td style="${tdBase}position:relative;min-width:68px;"
+      onmouseenter="showProdTooltip(event,'${id}','${d.id}')"
+      onmouseleave="hideProdTooltip()">
+      <div style="display:flex;flex-direction:column;gap:1px;align-items:center;">
+        <div style="display:flex;align-items:center;gap:2px;">
+          <span style="font-size:8px;color:#9ca3af;width:14px;">R</span>
+          <input type="number" min="0" value="${cell.real}" placeholder="—"
+            style="${realStyle}" title="Real"
+            onchange="setProdReal('${id}','${d.id}',this.value)">
+        </div>
+        <div style="display:flex;align-items:center;gap:2px;">
+          <span style="font-size:8px;color:#9ca3af;width:14px;">P</span>
+          <input type="number" min="0" value="${cell.plan}" placeholder="—"
+            style="${planStyle}" title="Plan"
+            onchange="setProdPlan('${id}','${d.id}',this.value)">
+        </div>
+      </div>
+      ${cell.note ? `<span style="position:absolute;top:2px;right:3px;font-size:8px;color:#6b6860;cursor:pointer;" onclick="addProdNote('${id}','${d.id}')" title="Ver/editar nota">💬</span>` : ''}
+    </td>`;
+  });
+
+  // Global (sum)
+  const globalRc = realColor(rowReal, rowPlan, hasAnyReal);
+  const globalPlanStyle = `font-size:11px;color:#6b7280;font-weight:600;`;
+  const globalRealStyle = `font-size:12px;font-weight:${globalRc.fw};color:${globalRc.color};`;
+  const globalCell = `<td style="${tdBase}min-width:54px;">
+    <div style="display:flex;flex-direction:column;gap:1px;align-items:center;">
+      <span style="${globalPlanStyle}">${rowPlan||'—'}</span>
+      <span style="${globalRealStyle}">${hasAnyReal?(rowReal||'—'):'—'}</span>
+    </div>
+  </td>`;
+
+  // Cumplimiento
+  const pct = hasAnyReal ? cumplPct(rowReal, rowPlan) : null;
+  const cumplCell = `<td style="${tdBase}min-width:60px;text-align:center;">${fmtPct(pct)}</td>`;
+
+  // Diferencia acumulada
+  const diff = hasAnyReal && rowPlan > 0 ? Math.round((rowReal - rowPlan) * 10) / 10 : null;
+  const diffCell = `<td style="${tdBase}min-width:60px;text-align:center;">${fmtDiff(diff, unit)}</td>`;
+
+  const indent = isSubRow ? 'padding-left:20px;' : '';
+  const rowBg = isSubRow ? 'background:#fafaf8;' : '';
+
+  return `<tr style="${rowBg}">
+    <td style="${tdLeft}${indent}${rowBg}">
+      <div style="display:flex;align-items:baseline;gap:5px;">
+        <span>${label}</span>
+        <span style="font-size:10px;color:#9ca3af;font-weight:400;">${unit}</span>
+      </div>
+    </td>
+    ${cells}${globalCell}${cumplCell}${diffCell}
+  </tr>`;
+}
+
+function renderProdTable() {
+  const thead=document.getElementById('prodThead');
+  const tbody=document.getElementById('prodTbody');
+  if(!thead||!tbody) return;
+
+  const thStyle='background:#1e1d1a;color:#f5f4f1;padding:7px 8px;text-align:center;font-size:11px;font-weight:600;white-space:nowrap;border:1px solid #3a3936;letter-spacing:.03em;';
+  const thStyleLeft='background:#1e1d1a;color:#f5f4f1;padding:7px 12px;text-align:left;font-size:11px;font-weight:600;white-space:nowrap;border:1px solid #3a3936;min-width:160px;';
+
+  // Header row — label P/R inside header
+  let h=`<tr>
+    <th style="${thStyleLeft}">
+      <div style="display:flex;flex-direction:column;gap:1px;">
+        <span>Indicador</span>
+      </div>
+    </th>`;
+  prodDays.forEach(d=>{
+    h+=`<th style="${thStyle}">${d.name}</th>`;
+  });
+  h+=`<th style="${thStyle}">Global<div style="font-size:9px;color:#9ca3af;">P / R</div></th>`;
+  h+=`<th style="${thStyle}">Cumpl.</th>`;
+  h+=`<th style="${thStyle}">Dif. Acum.</th>`;
+  h+='</tr>';
+  thead.innerHTML = h;
+
+  const tdBase='padding:3px 4px;border:1px solid #e5e7eb;text-align:center;vertical-align:middle;background:#fff;';
+  const tdLeft='padding:4px 12px;border:1px solid #e5e7eb;font-weight:600;font-size:12px;white-space:nowrap;background:#fff;';
+
+  let rows = '';
+
+  // Main rows
+  PROD_MAIN_ROWS.forEach(row => {
+    rows += prodRowHtml(row.id, row.label, row.unit, tdBase, tdLeft, false);
+  });
+
+  // Detalle Eq. Carguío — collapsible group
+  const arrow = detailGroupOpen ? '▼' : '▶';
+  rows += `<tr style="background:#f0ede8;cursor:pointer;" onclick="toggleDetallGroup()">
+    <td colspan="${prodDays.length + 4}" style="padding:5px 12px;font-size:11px;font-weight:700;color:#1e1d1a;border:1px solid #d4d0c9;letter-spacing:.04em;">
+      ${arrow} &nbsp;Detalle Eq. Carguío
+    </td>
+  </tr>`;
+
+  if (detailGroupOpen) {
+    PROD_EQUIPOS.forEach(eq => {
+      rows += prodRowHtml(eq, eq, 'kt', tdBase, tdLeft, true);
+    });
+    // Sub-total for equipment group
+    let subPlan=0, subReal=0, hasAnyReal=false;
+    let subCells='';
+    prodDays.forEach(d=>{
+      let dp=0, dr=0, hr=false;
+      PROD_EQUIPOS.forEach(eq=>{
+        const cell=(prodData[eq]||{})[d.id]||{};
+        dp+=parseFloat(cell.plan)||0;
+        dr+=parseFloat(cell.real)||0;
+        if(cell.real!=='') hr=true;
+      });
+      subPlan+=dp; subReal+=dr; if(hr) hasAnyReal=true;
+      const rc=realColor(dr,dp,hr);
+      subCells+=`<td style="${tdBase}background:#fafaf8;">
+        <div style="display:flex;flex-direction:column;gap:1px;align-items:center;">
+          <span style="font-size:11px;color:#6b7280;font-weight:600;">${dp||'—'}</span>
+          <span style="font-size:11px;font-weight:${rc.fw};color:${rc.color};">${hr?(dr||'—'):'—'}</span>
+        </div>
+      </td>`;
+    });
+    const subPct=hasAnyReal?cumplPct(subReal,subPlan):null;
+    const subDiff=hasAnyReal&&subPlan>0?Math.round((subReal-subPlan)*10)/10:null;
+    rows+=`<tr style="background:#f0ede8;">
+      <td style="${tdLeft}background:#f0ede8;font-size:11px;">Total Carguío</td>
+      ${subCells}
+      <td style="${tdBase}background:#f0ede8;">
+        <div style="display:flex;flex-direction:column;gap:1px;align-items:center;">
+          <span style="font-size:11px;color:#6b7280;font-weight:600;">${subPlan||'—'}</span>
+          <span style="font-size:11px;font-weight:${realColor(subReal,subPlan,hasAnyReal).fw};color:${realColor(subReal,subPlan,hasAnyReal).color};">${hasAnyReal?(subReal||'—'):'—'}</span>
+        </div>
+      </td>
+      <td style="${tdBase}background:#f0ede8;">${fmtPct(subPct)}</td>
+      <td style="${tdBase}background:#f0ede8;">${fmtDiff(subDiff,'kt')}</td>
+    </tr>`;
+  }
+
+  tbody.innerHTML = rows;
+}
+
+function setProdPlan(eq, dayId, val) {
+  if (!prodData[eq]) prodData[eq]={};
+  if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
+  prodData[eq][dayId].plan = val;
+  renderProdTable();
+}
+function setProdReal(eq, dayId, val) {
+  if (!prodData[eq]) prodData[eq]={};
+  if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
+  prodData[eq][dayId].real = val;
+  renderProdTable();
+}
+function addProdNote(eq, dayId) {
+  if (!prodData[eq]) prodData[eq]={};
+  if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
+  const current = prodData[eq][dayId].note || '';
+  const newNote = prompt(`Nota para ${eq} (opcional):`, current);
+  if (newNote !== null) { prodData[eq][dayId].note = newNote; renderProdTable(); }
+}
+function showProdTooltip(e, eq, dayId) {
+  const cell = (prodData[eq]||{})[dayId]||{};
+  if (!cell.note) return;
+  const tt = document.getElementById('prodTooltip');
+  tt.textContent = '💬 ' + cell.note;
+  tt.style.display = 'block';
+  tt.style.left = (e.clientX+12)+'px';
+  tt.style.top = (e.clientY-10)+'px';
+}
+function hideProdTooltip() {
+  const tt=document.getElementById('prodTooltip'); if(tt) tt.style.display='none';
+}
+
+// ─── QUIEBRE DE PLAN ─────────────────────────────────────────────────
+let quiebres = [];
+let editingQuiebreId = null;
+let quiebreNextId = 1;
+let quiebreFilter = 'all';
+
+function openQuiebreModal(id) {
+  editingQuiebreId = id || null;
+  const q = id ? quiebres.find(x => x.id === id) : null;
+  // reuse deviation modal structure but for quiebre
+  const modal = document.getElementById('quiebreModal');
+  document.getElementById('qModalTitle').textContent = q ? 'Editar Quiebre' : 'Nuevo Quiebre de Plan';
+  document.getElementById('qName').value   = q ? q.name   : '';
+  document.getElementById('qDesc').value   = q ? q.desc   : '';
+  document.getElementById('qImpact').value = q ? q.impact : '';
+  document.getElementById('qAction').value = q ? q.action : '';
+  document.getElementById('qResp').value   = q ? q.resp   : '';
+  document.getElementById('qDate').value   = q ? (q.date||'') : new Date().toISOString().slice(0,10);
+  selectQuiebreSev(q ? q.sev : 'high');
+  modal.classList.remove('hidden');
+}
+function closeQuiebreModal() {
+  document.getElementById('quiebreModal').classList.add('hidden');
+  editingQuiebreId = null;
+}
+function selectQuiebreSev(sev) {
+  document.getElementById('qSev').value = sev;
+  document.querySelectorAll('[data-qsev]').forEach(el => el.classList.remove('sel-high','sel-med','sel-low'));
+  const sel = document.querySelector(`[data-qsev="${sev}"]`);
+  if (sel) sel.classList.add(`sel-${sev}`);
+}
+function saveQuiebre() {
+  const name = document.getElementById('qName').value.trim();
+  if (!name) { alert('Ingresa el nombre del quiebre'); return; }
+  const q = {
+    id: editingQuiebreId || quiebreNextId++,
+    sev:    document.getElementById('qSev').value,
+    name, solved: editingQuiebreId ? (quiebres.find(x=>x.id===editingQuiebreId)||{}).solved : false,
+    desc:   document.getElementById('qDesc').value.trim(),
+    impact: document.getElementById('qImpact').value.trim(),
+    action: document.getElementById('qAction').value.trim(),
+    resp:   document.getElementById('qResp').value.trim(),
+    date:   document.getElementById('qDate').value,
+    ts: new Date()
+  };
+  if (editingQuiebreId) {
+    const idx = quiebres.findIndex(x => x.id === editingQuiebreId);
+    if (idx >= 0) quiebres[idx] = q;
+  } else {
+    quiebres.unshift(q);
+  }
+  closeQuiebreModal();
+  renderQuiebres();
+}
+function deleteQuiebre(id) { quiebres = quiebres.filter(x => x.id !== id); renderQuiebres(); }
+function toggleQuiebreSolved(id) {
+  const q = quiebres.find(x => x.id === id);
+  if (q) { q.solved = !q.solved; renderQuiebres(); }
+}
+function setQuiebreFilter(f) {
+  quiebreFilter = f;
+  document.querySelectorAll('[id^="qf"]').forEach(b => { b.style.background='var(--bg)'; b.style.color='var(--text-muted)'; });
+  const btn = document.getElementById('qf'+f.charAt(0).toUpperCase()+f.slice(1));
+  if(btn){btn.style.background='#1e1d1a';btn.style.color='#f5f4f1';}
+  renderQuiebres();
+}
+function renderQuiebres() {
+  const list = document.getElementById('quiebreList');
+  const count = document.getElementById('quiebreCount');
+  if (!list) return;
+  if (count) count.textContent = quiebres.length;
+  const filtered = quiebres.filter(q => {
+    if (quiebreFilter === 'active') return !q.solved;
+    if (quiebreFilter === 'solved') return !!q.solved;
+    return true;
+  });
+  const sevDot = {high:'sev-high',med:'sev-med',low:'sev-low'};
+  const sevLabel = {high:'Alta',med:'Media',low:'Baja'};
+  list.innerHTML = filtered.length === 0
+    ? `<div class="threat-empty" style="grid-column:1/-1;"><span class="big">📉</span><span>Sin quiebres registrados</span></div>`
+    : filtered.map(q => `
+    <div class="threat-card" style="${q.solved?'opacity:.6;':''}">
+      <div class="threat-card-top">
+        <div class="threat-sev ${sevDot[q.sev]}"></div>
+        <div class="threat-name" style="${q.solved?'text-decoration:line-through;color:var(--text-muted);':''}">${q.name}</div>
+        <div class="threat-actions">
+          <button class="threat-btn" onclick="toggleQuiebreSolved(${q.id})" title="${q.solved?'Reabrir':'Marcar solucionado'}"
+            style="color:${q.solved?'#10b981':'#6b6860'};font-size:14px;">${q.solved?'✅':'☑'}</button>
+          <button class="threat-btn" onclick="openQuiebreModal(${q.id})" title="Editar">✏️</button>
+          <button class="threat-btn" onclick="deleteQuiebre(${q.id})" style="color:#ef4444">🗑</button>
+        </div>
+      </div>
+      ${q.solved?`<div style="font-size:10px;color:#10b981;font-weight:600;padding-left:16px;margin-bottom:4px;">✅ Solucionado</div>`:''}
+      ${q.desc?`<div class="threat-desc">${q.desc}</div>`:''}
+      <div class="threat-meta">
+        <span class="threat-tag">${sevLabel[q.sev]}</span>
+        ${q.impact?`<span class="threat-tag impact">⚡ ${q.impact.slice(0,40)}${q.impact.length>40?'…':''}</span>`:''}
+        ${q.resp?`<span class="threat-tag resp">👤 ${q.resp}</span>`:''}
+        ${q.date?`<span class="threat-tag">📅 ${q.date}</span>`:''}
+      </div>
+    </div>`).join('');
+}
+document.getElementById('quiebreModal').addEventListener('click', function(e) {
+  if(e.target===this) closeQuiebreModal();
+});
+
+// ─── GEOTECNIA ───────────────────────────────────────────────────────
+let geoTool = 'number';
+let geoDrawing = false;
+let geoLastX = 0, geoLastY = 0;
+let geoNextSector = 1;
+let geoSectors = []; // {num, x, y, label}
+let geoImages = []; // {id, name, desc, src, active}
+let geoImageNextId = 1;
+let geoCurrentImageSrc = null;
+let geoArrowStart = null;
+
+function setGeoTool(tool) {
+  geoTool = tool;
+  document.querySelectorAll('[id^="geoTool"]').forEach(b => {
+    b.style.background = 'transparent'; b.style.color = '#a8a59f';
+    b.style.borderColor = '#3a3936';
+  });
+  const btn = document.getElementById('geoTool' + tool.charAt(0).toUpperCase() + tool.slice(1));
+  if (btn) { btn.style.background = '#c8a84b'; btn.style.color = '#1e1d1a'; btn.style.borderColor = '#c8a84b'; }
+  const canvas = document.getElementById('geoCanvas');
+  if (canvas) canvas.style.cursor = tool === 'erase' ? 'cell' : tool === 'number' ? 'crosshair' : 'crosshair';
+}
+
+function loadGeoImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    geoCurrentImageSrc = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.getElementById('geoCanvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.style.display = 'block';
+      document.getElementById('geoCanvasMsg').style.display = 'none';
+      initGeoCanvas();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function initGeoCanvas() {
+  const canvas = document.getElementById('geoCanvas');
+  canvas.onmousedown = geoMouseDown;
+  canvas.onmousemove = geoMouseMove;
+  canvas.onmouseup = geoMouseUp;
+  canvas.onmouseleave = () => { geoDrawing = false; geoArrowStart = null; };
+}
+
+function getGeoCtx() { return document.getElementById('geoCanvas').getContext('2d'); }
+function getGeoPos(e) {
+  const canvas = document.getElementById('geoCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+function geoMouseDown(e) {
+  const pos = getGeoPos(e);
+  const ctx = getGeoCtx();
+  const color = document.getElementById('geoColor').value;
+  const stroke = parseInt(document.getElementById('geoStroke').value);
+
+  if (geoTool === 'number') {
+    const num = geoNextSector++;
+    geoSectors.push({num, x: pos.x, y: pos.y, label: ''});
+    // Draw circle + number
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 14, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(num, pos.x, pos.y);
+    renderGeoSectorList();
+  } else if (geoTool === 'draw') {
+    geoDrawing = true;
+    geoLastX = pos.x; geoLastY = pos.y;
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = stroke;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  } else if (geoTool === 'arrow') {
+    geoArrowStart = pos;
+  } else if (geoTool === 'erase') {
+    geoDrawing = true;
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, stroke * 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function geoMouseMove(e) {
+  if (!geoDrawing) return;
+  const pos = getGeoPos(e);
+  const ctx = getGeoCtx();
+  const color = document.getElementById('geoColor').value;
+  const stroke = parseInt(document.getElementById('geoStroke').value);
+  if (geoTool === 'draw') {
+    ctx.beginPath();
+    ctx.moveTo(geoLastX, geoLastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = stroke;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    geoLastX = pos.x; geoLastY = pos.y;
+  } else if (geoTool === 'erase') {
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, stroke * 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function geoMouseUp(e) {
+  const pos = getGeoPos(e);
+  const ctx = getGeoCtx();
+  const color = document.getElementById('geoColor').value;
+  const stroke = parseInt(document.getElementById('geoStroke').value);
+  if (geoTool === 'arrow' && geoArrowStart) {
+    drawArrow(ctx, geoArrowStart.x, geoArrowStart.y, pos.x, pos.y, color, stroke);
+    geoArrowStart = null;
+  }
+  geoDrawing = false;
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, lw) {
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const headLen = 18;
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen*Math.cos(angle-Math.PI/6), y2 - headLen*Math.sin(angle-Math.PI/6));
+  ctx.lineTo(x2 - headLen*Math.cos(angle+Math.PI/6), y2 - headLen*Math.sin(angle+Math.PI/6));
+  ctx.closePath(); ctx.fill();
+}
+
+function clearGeoCanvas() {
+  if (!confirm('¿Limpiar todos los dibujos?')) return;
+  const canvas = document.getElementById('geoCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (geoCurrentImageSrc) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0);
+    img.src = geoCurrentImageSrc;
+  }
+  geoSectors = []; geoNextSector = 1;
+  renderGeoSectorList();
+}
+
+function downloadGeoCanvas() {
+  const canvas = document.getElementById('geoCanvas');
+  const a = document.createElement('a');
+  a.download = 'geotecnia_mapa.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function renderGeoSectorList() {
+  const list = document.getElementById('geoSectorList');
+  if (!list) return;
+  if (geoSectors.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:#aaa;font-style:italic;">Sin sectores marcados</div>';
+    return;
+  }
+  list.innerHTML = geoSectors.map(s => `
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;background:#fff;border-radius:4px;border:1px solid var(--border);">
+      <div style="width:22px;height:22px;border-radius:50%;background:#ff6600;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">${s.num}</div>
+      <input value="${s.label}" placeholder="Descripción sector ${s.num}…"
+        style="flex:1;border:none;background:transparent;font-size:11px;color:var(--text);outline:none;"
+        onchange="updateGeoSectorLabel(${s.num},this.value)">
+    </div>`).join('');
+}
+
+function updateGeoSectorLabel(num, label) {
+  const s = geoSectors.find(x => x.num === num);
+  if (s) { s.label = label; renderGeoImageList(); }
+}
+
+// Geo images
+function openGeoImageModal() {
+  document.getElementById('geoImgName').value = '';
+  document.getElementById('geoImgDesc').value = '';
+  document.getElementById('geoImgPreview').style.display = 'none';
+  document.getElementById('geoImgPreview').src = '';
+  document.getElementById('geoImgPlaceholder').style.display = 'block';
+  document.getElementById('geoImageModal').classList.remove('hidden');
+}
+function closeGeoImageModal() {
+  document.getElementById('geoImageModal').classList.add('hidden');
+}
+function previewGeoImg(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('geoImgPreview').src = e.target.result;
+    document.getElementById('geoImgPreview').style.display = 'block';
+    document.getElementById('geoImgPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+function saveGeoImage() {
+  const name = document.getElementById('geoImgName').value.trim();
+  if (!name) { alert('Ingresa el nombre de la imagen'); return; }
+  const src = document.getElementById('geoImgPreview').src;
+  geoImages.unshift({
+    id: geoImageNextId++,
+    name,
+    desc: document.getElementById('geoImgDesc').value.trim(),
+    src: src || null,
+    active: true
+  });
+  closeGeoImageModal();
+  renderGeoImageList();
+}
+function toggleGeoImageActive(id) {
+  const img = geoImages.find(x => x.id === id);
+  if (img) { img.active = !img.active; renderGeoImageList(); }
+}
+function deleteGeoImage(id) {
+  geoImages = geoImages.filter(x => x.id !== id);
+  renderGeoImageList();
+}
+function loadGeoImageFromList(src) {
+  geoCurrentImageSrc = src;
+  const canvas = document.getElementById('geoCanvas');
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    canvas.style.display = 'block';
+    document.getElementById('geoCanvasMsg').style.display = 'none';
+    initGeoCanvas();
+    geoSectors = []; geoNextSector = 1;
+    renderGeoSectorList();
+  };
+  img.src = src;
+}
+function renderGeoImageList() {
+  const list = document.getElementById('geoImageList');
+  if (!list) return;
+  if (geoImages.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:#aaa;font-style:italic;">Sin imágenes</div>';
+    return;
+  }
+  list.innerHTML = geoImages.map(img => `
+    <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#fff;${!img.active?'opacity:.55;':''}">
+      ${img.src ? `<img src="${img.src}" style="width:100%;height:80px;object-fit:cover;cursor:pointer;display:block;" onclick="loadGeoImageFromList('${img.src}')" title="Cargar en canvas">` : ''}
+      <div style="padding:6px 8px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;">${img.name}</div>
+        ${img.desc?`<div style="font-size:11px;color:var(--text-muted);line-height:1.35;margin-bottom:4px;">${img.desc}</div>`:''}
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+          <button onclick="toggleGeoImageActive(${img.id})" title="${img.active?'Marcar inactiva':'Activar'}"
+            style="font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid ${img.active?'#10b981':'#9ca3af'};background:${img.active?'#dcfce7':'#f3f4f6'};color:${img.active?'#15803d':'#6b7280'};cursor:pointer;font-family:inherit;">
+            ${img.active?'✅ Vigente':'⏸ Inactiva'}
+          </button>
+          <button onclick="deleteGeoImage(${img.id})" style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid #fca5a5;background:#fee2e2;color:#dc2626;cursor:pointer;">🗑</button>
+          ${img.src?`<button onclick="loadGeoImageFromList('${img.src}')" style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;margin-left:auto;">🗺 Ver</button>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+document.getElementById('geoImageModal').addEventListener('click', function(e) {
+  if(e.target===this) closeGeoImageModal();
+});
+
+// ─── WEEK NAVIGATOR ──────────────────────────────────────────────────
+// Weeks run Fri→Thu. Find current week's Friday.
+let currentWeekOffset = 0; // 0 = current week
+
+function getWeekStart(offset) {
+  const today = new Date();
+  // Find last Friday (or today if Friday)
+  const dow = today.getDay(); // 0=Sun,1=Mon,...,5=Fri,6=Sat
+  const daysToFriday = (dow >= 5) ? (dow - 5) : (dow + 2); // days since last Friday
+  const friday = new Date(today);
+  friday.setDate(today.getDate() - daysToFriday + (offset * 7));
+  friday.setHours(0,0,0,0);
+  return friday;
+}
+function getWeekEnd(offset) {
+  const start = getWeekStart(offset);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6); // Thu
+  return end;
+}
+
+function weekNav(dir) {
+  currentWeekOffset += dir;
+  applyWeekToDays();
+  updateWeekLabels();
+}
+
+function applyWeekToDays() {
+  const start = getWeekStart(currentWeekOffset);
+  // Build 7 days (Fri→Thu)
+  const newDays = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const id = 'd' + i;
+    const existing = days.find(x => x.id === id);
+    newDays.push({
+      id,
+      name: fmtDayNameWeek(d),
+      date: d,
+      shifts: existing ? existing.shifts : ['A','B']
+    });
+  }
+  days = newDays;
+  dayVisible = {};
+  days.forEach(d => dayVisible[d.id] = true);
+  // Update activities cells to include new day IDs
+  activities.forEach(a => {
+    days.forEach(d => {
+      if (!a.cells[d.id]) a.cells[d.id] = {};
+    });
+  });
+  render();
+  updateWeekLabels();
+  buildCalendar(); // refresh date panel
+}
+
+function fmtDayNameWeek(d) {
+  const dows = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  return `${dows[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function updateWeekLabels() {
+  const start = getWeekStart(currentWeekOffset);
+  const end = getWeekEnd(currentWeekOffset);
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmt = d => `${d.getDate()} ${months[d.getMonth()]}`;
+  const yr = end.getFullYear();
+  const label = `${fmt(start)} – ${fmt(end)} ${yr}`;
+  const navEl = document.getElementById('weekNavLabel');
+  if (navEl) navEl.textContent = label;
+  const rangeEl = document.getElementById('weekRangeLabel');
+  if (rangeEl) rangeEl.textContent = label;
+  const dateEl = document.getElementById('weekDateLabel');
+  if (dateEl) dateEl.textContent = label;
+  // Semana number (approximate)
+  const onejan = new Date(yr,0,1);
+  const weekNum = Math.ceil(((start - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+  const phaseEl = document.getElementById('weekPhaseLabel');
+  if (phaseEl) phaseEl.textContent = `Semana ${weekNum}`;
+}
+
+// ─── MAP PANEL ───────────────────────────────────────────────────────
+let mapPanelOpen = true;
+function toggleMapPanel() {
+  mapPanelOpen = !mapPanelOpen;
+  const panel = document.getElementById('mapPanel');
+  const btn = document.getElementById('mapToggleBtn');
+  if (panel) panel.style.maxHeight = mapPanelOpen ? '260px' : '0px';
+  if (btn) btn.textContent = mapPanelOpen ? '▲ Minimizar' : '▼ Expandir';
+}
+function loadMapImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('mapImg');
+    const noImg = document.getElementById('mapNoImg');
+    if (img) { img.src = e.target.result; img.style.display = 'block'; }
+    if (noImg) noImg.style.display = 'none';
+    if (!mapPanelOpen) toggleMapPanel();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+// ─── KPI CARDS ───────────────────────────────────────────────────────
+function updateKpiCards() {
+  const counts = {ok:0, atr:0, crit:0, plan:0};
+  activities.forEach(a => { if (counts[a.estado] !== undefined) counts[a.estado]++; });
+  const total = activities.length;
+  const globalPct = total > 0 ? Math.round(counts.ok / total * 100) : 0;
+
+  const kpiEl = document.getElementById('kpiGlobal');
+  const kpiBar = document.getElementById('kpiGlobalBar');
+  if (kpiEl) kpiEl.textContent = globalPct + '%';
+  if (kpiBar) { kpiBar.style.width = globalPct+'%'; kpiBar.style.background = globalPct>=80?'#10b981':globalPct>=50?'#f59e0b':'#ef4444'; }
+
+  const cards = document.getElementById('kpiCards');
+  if (!cards) return;
+  const defs = [
+    {key:'ok',   label:'Completadas', color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0'},
+    {key:'atr',  label:'Retrasadas',  color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
+    {key:'crit', label:'Críticas',    color:'#dc2626', bg:'#fef2f2', border:'#fecaca'},
+    {key:'plan', label:'Pendientes',  color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
+  ];
+  cards.innerHTML = defs.map(d => `
+    <div style="flex:1;padding:10px 16px;border-right:1px solid var(--border);background:${d.bg};">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${d.color};margin-bottom:4px;">${d.label}</div>
+      <div style="font-size:28px;font-weight:700;color:${d.color};font-family:'IBM Plex Mono',monospace;line-height:1;">${counts[d.key]}</div>
+    </div>`).join('');
+}
+
+// ─── CALENDAR WITH CTRL-CLICK ─────────────────────────────────────────
+// Override the calToggleDay to support ctrl+click multi-select
+function calToggleDayCtrl(key, year, month, day, ctrlKey) {
+  const active = activeDayMap();
+  if (ctrlKey) {
+    // Multi-select: toggle without changing others
+    if (active[key]) {
+      const d = active[key];
+      days = days.filter(x => x.id !== d.id);
+      delete dayVisible[d.id];
+    } else {
+      const dateObj = new Date(year, month, day);
+      const id = 'd' + dateObj.getTime();
+      const newDay = { id, name: fmtDayName(dateObj), date: dateObj, shifts: ['A','B'] };
+      days.push(newDay);
+      days.sort((a,b) => (a.date?a.date.getTime():0) - (b.date?b.date.getTime():0));
+      dayVisible[id] = true;
+      activities.forEach(a => { if (!a.cells[id]) a.cells[id] = {}; });
+    }
+  } else {
+    // Normal click: keep original behavior
+    calToggleDay(key, year, month, day);
+    return;
+  }
+  buildCalendar();
+  render();
+}
+
+// Override buildCalendar to pass ctrlKey
+const _origBuildCal = buildCalendar;
+function buildCalendar() {
+  const grid = document.getElementById('calGrid');
+  const label = document.getElementById('calMonthLabel');
+  if (!grid || !label) return;
+  const year = calViewDate.getFullYear();
+  const month = calViewDate.getMonth();
+  label.textContent = `${MON_ES[month]} ${year}`;
+  const active = activeDayMap();
+  const today = new Date(); today.setHours(0,0,0,0);
+  grid.innerHTML = DOW_ES.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const firstDay = new Date(year, month, 1);
+  let startDow = (firstDay.getDay() + 6) % 7;
+  for (let i = 0; i < startDow; i++) grid.innerHTML += `<div class="cal-empty cal-day"></div>`;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    const k = dateKey(d);
+    const isActive = !!active[k];
+    const isToday = d.getTime() === today.getTime();
+    const cls = ['cal-day', isActive ? 'cal-active' : '', isToday ? 'cal-today' : ''].filter(Boolean).join(' ');
+    const div = document.createElement('div');
+    div.className = cls;
+    div.textContent = day;
+    div.title = fmtDayName(d);
+    div.addEventListener('click', ev => {
+      calToggleDayCtrl(k, year, month, day, ev.ctrlKey || ev.metaKey);
+    });
+    grid.appendChild(div);
+  }
+  const activeCount = days.length;
+  const countEl = document.getElementById('calActiveCount');
+  if (countEl) countEl.textContent = `${activeCount} día${activeCount!==1?'s':''}`;
+  updateDatePanelCount();
+}
+
+// ─── UPDATE SUMMARY overriding to also update KPI ────────────────────
+const _origUpdateSummary = typeof updateSummary === 'function' ? updateSummary : null;
+function toggleComplianceInline() {
+  const el = document.getElementById('complianceInline');
+  const btn = document.getElementById('btnToggleCompliance');
+  if (!el || !btn) return;
+  const isVisible = el.style.display !== 'none';
+  el.style.display = isVisible ? 'none' : 'flex';
+  btn.textContent = isVisible ? 'Ver cumplimiento' : 'Ocultar';
+}
+function toggleComplianceBar() { toggleComplianceInline(); }
+
+// ─── GANTT IMAGES PANEL ──────────────────────────────────────────────
+let ganttImages = []; // {id, name, src}
+let ganttImgNextId = 1;
+let ganttImgPanelOpen = false;
+
+function toggleGanttImgPanel() {
+  ganttImgPanelOpen = !ganttImgPanelOpen;
+  const carousel = document.getElementById('ganttImgCarousel');
+  const arrow = document.getElementById('ganttImgArrow');
+  if (carousel) carousel.style.display = ganttImgPanelOpen ? 'block' : 'none';
+  if (arrow) { arrow.textContent = ganttImgPanelOpen ? '▼' : '▶'; arrow.style.transform = ''; }
+}
+
+function addGanttImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const name = prompt('Nombre para esta imagen:', file.name.replace(/\.[^.]+$/,'')) || file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    ganttImages.push({ id: ganttImgNextId++, name, src: e.target.result });
+    renderGanttImgStrip();
+    if (!ganttImgPanelOpen) toggleGanttImgPanel();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function deleteGanttImage(id) {
+  ganttImages = ganttImages.filter(x => x.id !== id);
+  renderGanttImgStrip();
+}
+function renameGanttImage(id) {
+  const img = ganttImages.find(x => x.id === id);
+  if (!img) return;
+  const newName = prompt('Nuevo nombre:', img.name);
+  if (newName && newName.trim()) { img.name = newName.trim(); renderGanttImgStrip(); }
+}
+function viewGanttImage(src) {
+  const m = document.getElementById('imgViewModal');
+  const i = document.getElementById('imgViewSrc');
+  if (m && i) { i.src = src; m.classList.remove('hidden'); }
+}
+
+function renderGanttImgStrip() {
+  const strip = document.getElementById('ganttImgStrip');
+  const count = document.getElementById('ganttImgCount');
+  if (!strip) return;
+  if (count) count.textContent = ganttImages.length;
+  if (ganttImages.length === 0) {
+    strip.innerHTML = '<div style="font-size:11px;color:#aaa;align-self:center;font-style:italic;">Sin imágenes cargadas</div>';
+    return;
+  }
+  strip.innerHTML = ganttImages.map(img => `
+    <div class="gantt-img-thumb">
+      <img src="${img.src}" onclick="viewGanttImage('${img.src}')" title="${img.name}">
+      <div class="gantt-img-thumb-name">${img.name}</div>
+      <div class="gantt-img-thumb-actions">
+        <button onclick="renameGanttImage(${img.id})" style="background:#1e1d1a;color:#f5f4f1;" title="Renombrar">✏</button>
+        <button onclick="deleteGanttImage(${img.id})" style="background:#ef4444;color:#fff;" title="Eliminar">×</button>
+      </div>
+    </div>`).join('');
+}
+
+// ─── GEOTECNIA LIBRARY ───────────────────────────────────────────────
+let geoLibImages = [];
+let geoLibNextId = 1;
+let geoLibFaseFilter = 'all';
+let geoLibTipoFilter = 'all';
+let geoLibVigFilter = 'all';
+let editingGeoLibId = null;
+
+function openGeoLibModal(id) {
+  editingGeoLibId = id || null;
+  const img = id ? geoLibImages.find(x => x.id === id) : null;
+  document.getElementById('geoLibModalTitle').textContent = img ? 'Editar Imagen' : 'Nueva Imagen Geotecnia';
+  document.getElementById('geoLibName').value = img ? img.name : '';
+  document.getElementById('geoLibFase').value = img ? img.fase : '';
+  document.getElementById('geoLibTipo').value = img ? img.tipo : 'trabajo';
+  document.getElementById('geoLibDesc').value = img ? img.desc : '';
+  document.getElementById('geoLibPendientes').value = img ? img.pendientes : '';
+  document.getElementById('geoLibComentario').value = img ? img.comentario : '';
+  document.getElementById('geoLibFecha').value = img ? (img.fecha||'') : new Date().toISOString().slice(0,10);
+  const preview = document.getElementById('geoLibPreview');
+  const placeholder = document.getElementById('geoLibImgPlaceholder');
+  if (img && img.src) {
+    preview.src = img.src; preview.style.display = 'block'; placeholder.style.display = 'none';
+  } else {
+    preview.src = ''; preview.style.display = 'none'; placeholder.style.display = 'block';
+  }
+  document.getElementById('geoLibModal').classList.remove('hidden');
+}
+function closeGeoLibModal() {
+  document.getElementById('geoLibModal').classList.add('hidden');
+  editingGeoLibId = null;
+}
+function previewGeoLibImg(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('geoLibPreview');
+    preview.src = e.target.result; preview.style.display = 'block';
+    document.getElementById('geoLibImgPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+function saveGeoLibImage() {
+  const name = document.getElementById('geoLibName').value.trim();
+  if (!name) { alert('Ingresa el título de la imagen'); return; }
+  const preview = document.getElementById('geoLibPreview');
+  const src = preview.src && preview.style.display !== 'none' ? preview.src : (editingGeoLibId ? (geoLibImages.find(x=>x.id===editingGeoLibId)||{}).src : null);
+  const item = {
+    id: editingGeoLibId || geoLibNextId++,
+    name, src,
+    fase:        document.getElementById('geoLibFase').value,
+    tipo:        document.getElementById('geoLibTipo').value,
+    desc:        document.getElementById('geoLibDesc').value.trim(),
+    pendientes:  document.getElementById('geoLibPendientes').value.trim(),
+    comentario:  document.getElementById('geoLibComentario').value.trim(),
+    fecha:       document.getElementById('geoLibFecha').value,
+    active: editingGeoLibId ? (geoLibImages.find(x=>x.id===editingGeoLibId)||{active:true}).active : true
+  };
+  if (editingGeoLibId) {
+    const idx = geoLibImages.findIndex(x => x.id === editingGeoLibId);
+    if (idx >= 0) geoLibImages[idx] = item;
+  } else {
+    geoLibImages.unshift(item);
+  }
+  closeGeoLibModal();
+  renderGeoLibGrid();
+}
+function deleteGeoLibImage(id) {
+  if (!confirm('¿Eliminar esta imagen?')) return;
+  geoLibImages = geoLibImages.filter(x => x.id !== id);
+  renderGeoLibGrid();
+}
+function toggleGeoLibActive(id) {
+  const img = geoLibImages.find(x => x.id === id);
+  if (img) { img.active = !img.active; renderGeoLibGrid(); }
+}
+function viewGeoLibImage(id) {
+  const img = geoLibImages.find(x => x.id === id);
+  if (!img) return;
+  const m = document.getElementById('geoLibViewModal');
+  const i = document.getElementById('geoLibViewImg');
+  const info = document.getElementById('geoLibViewInfo');
+  if (!m || !i || !info) return;
+  if (img.src) i.src = img.src; else i.style.display='none';
+  const tipoBadge = img.tipo === 'hazard' ? '<span style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">⚠️ Hazard</span>' : '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">🔧 Trabajo</span>';
+  info.innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:#1e1d1a;margin-bottom:8px;">${img.name}</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">${tipoBadge}<span style="font-size:11px;background:#f3f4f6;padding:2px 8px;border-radius:10px;">${img.fase||'—'}</span></div>
+    ${img.desc?`<div style="font-size:12px;margin-bottom:8px;"><strong>Descripción:</strong><br>${img.desc}</div>`:''}
+    ${img.pendientes?`<div style="font-size:12px;margin-bottom:8px;"><strong>Trabajos pendientes:</strong><br>${img.pendientes}</div>`:''}
+    ${img.comentario?`<div style="font-size:12px;margin-bottom:8px;"><strong>Comentario:</strong><br>${img.comentario}</div>`:''}
+    ${img.fecha?`<div style="font-size:11px;color:#6b7280;">📅 ${img.fecha}</div>`:''}
+    <div style="margin-top:12px;">
+      <button onclick="toggleGeoLibActive(${img.id});document.getElementById('geoLibViewModal').classList.add('hidden');renderGeoLibGrid();"
+        style="font-size:11px;padding:4px 10px;border-radius:10px;border:1px solid ${img.active?'#10b981':'#9ca3af'};background:${img.active?'#dcfce7':'#f3f4f6'};color:${img.active?'#15803d':'#6b7280'};cursor:pointer;font-family:inherit;">
+        ${img.active?'✅ Vigente':'⏸ Inactiva'}
+      </button>
+    </div>`;
+  m.classList.remove('hidden');
+}
+
+function setGeoLibFase(f) {
+  geoLibFaseFilter = f;
+  document.querySelectorAll('[id^="glf-"]').forEach(b=>b.classList.remove('active'));
+  const bid = f === 'all' ? 'glf-all' : f === 'Fuera de Fase' ? 'glf-FdF' : 'glf-'+f;
+  const btn = document.getElementById(bid);
+  if(btn) btn.classList.add('active');
+  renderGeoLibGrid();
+}
+function setGeoLibTipo(t) {
+  geoLibTipoFilter = t;
+  document.querySelectorAll('[id^="glt-"]').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById('glt-'+t);
+  if(btn) btn.classList.add('active');
+  renderGeoLibGrid();
+}
+function setGeoLibVigencia(v) {
+  geoLibVigFilter = v;
+  document.querySelectorAll('[id^="glv-"]').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById('glv-'+v);
+  if(btn) btn.classList.add('active');
+  renderGeoLibGrid();
+}
+
+function renderGeoLibGrid() {
+  const grid = document.getElementById('geoLibGrid');
+  const count = document.getElementById('geoLibCount');
+  if (!grid) return;
+  let filtered = geoLibImages.filter(img => {
+    if (geoLibFaseFilter !== 'all' && img.fase !== geoLibFaseFilter) return false;
+    if (geoLibTipoFilter !== 'all' && img.tipo !== geoLibTipoFilter) return false;
+    if (geoLibVigFilter === 'active' && !img.active) return false;
+    return true;
+  });
+  if (count) count.textContent = `${filtered.length} imagen${filtered.length!==1?'es':''}`;
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="threat-empty" style="grid-column:1/-1;"><span class="big">🪨</span><span>Sin imágenes para los filtros seleccionados</span></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(img => `
+    <div class="geo-lib-card" style="${!img.active?'opacity:.55;':''}">
+      ${img.src
+        ? `<img src="${img.src}" onclick="viewGeoLibImage(${img.id})" alt="${img.name}">`
+        : `<div style="height:130px;background:#f0ede8;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:28px;cursor:pointer;" onclick="viewGeoLibImage(${img.id})">🪨</div>`}
+      <div class="geo-lib-card-body">
+        <div class="geo-lib-tipo-badge ${img.tipo==='hazard'?'tipo-hazard':'tipo-trabajo'}">${img.tipo==='hazard'?'⚠️ Hazard':'🔧 Trabajo'}</div>
+        ${img.fase?`<span style="font-size:10px;background:#f3f4f6;padding:2px 6px;border-radius:8px;margin-left:4px;">${img.fase}</span>`:''}
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin:4px 0 3px;line-height:1.3;">${img.name}</div>
+        ${img.desc?`<div style="font-size:11px;color:var(--text-muted);line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${img.desc}</div>`:''}
+        ${img.fecha?`<div style="font-size:10px;color:#9ca3af;margin-bottom:6px;">📅 ${img.fecha}</div>`:''}
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+          <button onclick="toggleGeoLibActive(${img.id})"
+            style="font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid ${img.active?'#10b981':'#9ca3af'};background:${img.active?'#dcfce7':'#f3f4f6'};color:${img.active?'#15803d':'#6b7280'};cursor:pointer;font-family:inherit;">
+            ${img.active?'✅ Vigente':'⏸ Inactiva'}
+          </button>
+          <button onclick="openGeoLibModal(${img.id})" style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;">✏️</button>
+          <button onclick="deleteGeoLibImage(${img.id})" style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid #fca5a5;background:#fee2e2;color:#dc2626;cursor:pointer;margin-left:auto;">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('geoLibModal').addEventListener('click', function(e) { if(e.target===this) closeGeoLibModal(); });
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+applyWeekToDays(); // sets days to current Fri-Thu week
+render();
+renderThreats();
+renderDeviations();
+renderQuiebres();
+updateCompliance();
+updateFaseMsBtn();
+updateKpiCards();
+updateWeekLabels();
+initProdDays();
+renderProdTable();
+
+// ─── LOGIN ────────────────────────────────────────────────────────────
+function doLogin() {
+  const u = (document.getElementById('loginUser').value||'').trim();
+  const p = (document.getElementById('loginPass').value||'').trim();
+  if (u === 'Pelambres' && p === 'AMSA2026') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appShell').style.display = 'block';
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPass').value = '';
+  }
+}
+function doLogout() {
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+// focus user field on load
+document.getElementById('loginUser').focus();
+
+// ─── TABS ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-page').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.app-tab').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + tab);
+  if (page) page.style.display = 'block';
+  const btn = document.getElementById('tab-' + tab);
+  if (btn) btn.classList.add('active');
+  if (tab === 'produccion') { initProdDays(); renderProdTable(); buildProdCal(); }
+  if (tab === 'amenazas') { renderThreats(); renderDeviations(); }
+  if (tab === 'geotecnia') { renderGeoLibGrid(); }
+  if (tab === 'quiebre') { renderQuiebres(); }
+}
+</script>
+</body>
+</html>
