@@ -802,6 +802,7 @@
   <button class="app-tab" id="tab-quiebre" onclick="switchTab('quiebre')">📉 Quiebre de Plan</button>
   <button class="app-tab" id="tab-amenazas" onclick="switchTab('amenazas')">⚠️ Amenazas / Desviaciones</button>
   <div style="flex:1"></div>
+  <span id="saveIndicator" style="font-size:11px;color:#10b981;padding:0 10px;align-self:center;"></span>
   <button onclick="doLogout()" style="font-size:11px;background:none;border:1px solid #3a3936;color:#a8a59f;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;">Cerrar sesión</button>
 </div>
 
@@ -1400,8 +1401,104 @@
 
 </div><!-- /appShell -->
 
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ─── STATE ───────────────────────────────────────────────────────────
+// ─── SUPABASE CONFIG ──────────────────────────────────────────────────
+const SUPA_URL  = 'https://awiyiebqugkfezktknpc.supabase.co';
+const SUPA_KEY  = 'sb_publishable_Wra2GGprwwSDrXP-MJb_Ng_kI3rKzkp';
+const supabase  = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ─── DB HELPERS ───────────────────────────────────────────────────────
+// Each table stores a single JSON row with id=1 containing the full state.
+// This keeps the integration simple — one row per table, full replace on save.
+
+async function dbLoad(table) {
+  try {
+    const { data, error } = await supabase.from(table).select('data').eq('id', 1).single();
+    if (error) return null;
+    return data ? data.data : null;
+  } catch(e) { return null; }
+}
+
+async function dbSave(table, payload) {
+  try {
+    // upsert: insert if not exists, update if exists
+    const { error } = await supabase.from(table).upsert({ id: 1, data: payload, updated_at: new Date().toISOString() });
+    if (error) console.warn(`DB save error [${table}]:`, error.message);
+  } catch(e) { console.warn('DB save exception:', e); }
+}
+
+// Debounce helper — avoids saving on every keystroke
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// Save all state at once
+const saveAll = debounce(async () => {
+  showSaveIndicator('saving');
+  await Promise.all([
+    dbSave('activities', activities),
+    dbSave('days',       days),
+    dbSave('threats',    threats),
+    dbSave('deviations', deviations),
+    dbSave('quiebres',   quiebres),
+    dbSave('production', { prodData, prodDays }),
+    dbSave('gantt_images', ganttImages),
+    dbSave('geo_images', geoLibImages),
+  ]);
+  showSaveIndicator('saved');
+}, 1200);
+
+function showSaveIndicator(state) {
+  const el = document.getElementById('saveIndicator');
+  if (!el) return;
+  if (state === 'saving') {
+    el.textContent = '💾 Guardando…';
+    el.style.color = '#f59e0b';
+  } else {
+    el.textContent = '✅ Guardado';
+    el.style.color = '#10b981';
+    setTimeout(() => { el.textContent = ''; }, 3000);
+  }
+}
+
+// Load all state on login
+async function loadAll() {
+  showSaveIndicator('saving');
+
+  const [
+    actData, daysData, threatData, devData,
+    quiebreData, prodDBData, ganttImgData, geoImgData
+  ] = await Promise.all([
+    dbLoad('activities'),
+    dbLoad('days'),
+    dbLoad('threats'),
+    dbLoad('deviations'),
+    dbLoad('quiebres'),
+    dbLoad('production'),
+    dbLoad('gantt_images'),
+    dbLoad('geo_images'),
+  ]);
+
+  if (actData)     { activities = actData; nextId = Math.max(...activities.map(a=>a.id), 0) + 1; }
+  if (daysData)    { days = daysData; dayVisible = {}; days.forEach(d => dayVisible[d.id] = true); }
+  if (threatData)  { threats = threatData; threatNextId = Math.max(...threats.map(t=>t.id), 0) + 1; }
+  if (devData)     { deviations = devData; devNextId = Math.max(...deviations.map(d=>d.id), 0) + 1; }
+  if (quiebreData) { quiebres = quiebreData; quiebreNextId = Math.max(...quiebres.map(q=>q.id), 0) + 1; }
+  if (prodDBData)  {
+    if (prodDBData.prodData) prodData = prodDBData.prodData;
+    if (prodDBData.prodDays) { prodDays = prodDBData.prodDays; }
+  }
+  if (ganttImgData) { ganttImages = ganttImgData; ganttImgNextId = Math.max(...ganttImages.map(i=>i.id), 0) + 1; }
+  if (geoImgData)   { geoLibImages = geoImgData; geoLibNextId = Math.max(...geoLibImages.map(i=>i.id), 0) + 1; }
+
+  document.getElementById('saveIndicator').textContent = '';
+}
+</script>
+
+<script>
 let days = [
   {id:'d0', name:'Vie 08', shifts:['A','B']},
   {id:'d1', name:'Sáb 09', shifts:['A','B']},
@@ -1555,6 +1652,7 @@ function calToggleDay(key, year, month, day) {
   }
   buildCalendar();
   render();
+  saveAll();
 }
 
 function calClearAll() {
@@ -2029,20 +2127,20 @@ function toggleCellPlan(id, dayId, shift) {
   if (!a) return;
   ensureCell(a, dayId, shift);
   a.cells[dayId][shift].plan = !a.cells[dayId][shift].plan;
-  renderTbody(); updateSummary();
+  renderTbody(); updateSummary(); saveAll();
 }
 function toggleCellReprg(id, dayId, shift) {
   const a = activities.find(x => x.id === id);
   if (!a) return;
   ensureCell(a, dayId, shift);
   a.cells[dayId][shift].reprg = !a.cells[dayId][shift].reprg;
-  renderTbody(); updateSummary();
+  renderTbody(); updateSummary(); saveAll();
 }
 
 // ─── INLINE FIELD UPDATE ─────────────────────────────────────────────
 function updateField(id, field, value) {
   const a = activities.find(x => x.id === id);
-  if (a) a[field] = value;
+  if (a) { a[field] = value; saveAll(); }
 }
 
 function updatePct(id, value) {
@@ -2056,7 +2154,7 @@ function updatePct(id, value) {
     const colors = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'};
     if (fill) { fill.style.width = a.pct + '%'; fill.style.background = colors[a.estado]||'#3b82f6'; }
   }
-  updateSummary();
+  updateSummary(); saveAll();
 }
 
 function updateEstado(id, value) {
@@ -2072,7 +2170,7 @@ function updateEstado(id, value) {
     const colors = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'};
     if (fill) fill.style.background = colors[value]||'#3b82f6';
   }
-  updateSummary();
+  updateSummary(); saveAll();
 }
 
 // ─── SUMMARY ─────────────────────────────────────────────────────────
@@ -2359,12 +2457,12 @@ function saveActivity() {
   }
   closeActivityModal();
   render();
+  saveAll();
 }
-
-function deleteActivity(id) {
   if (!confirm('¿Eliminar esta actividad?')) return;
   activities = activities.filter(a => a.id !== id);
   render();
+  saveAll();
 }
 
 // ─── IMAGE ───────────────────────────────────────────────────────────
@@ -2447,10 +2545,12 @@ function saveThreat() {
   }
   closeThreatModal();
   renderThreats();
+  saveAll();
 }
 function deleteThreat(id) {
   threats = threats.filter(x => x.id !== id);
   renderThreats();
+  saveAll();
 }
 function renderThreats() {
   const list = document.getElementById('threatsList');
@@ -2602,10 +2702,12 @@ function saveDeviation() {
   }
   closeDeviationModal();
   renderDeviations();
+  saveAll();
 }
 function deleteDeviation(id) {
   deviations = deviations.filter(x => x.id !== id);
   renderDeviations();
+  saveAll();
 }
 function renderDeviations() {
   const list = document.getElementById('deviationsList');
@@ -2741,11 +2843,11 @@ function setDevFilter(f) {
 }
 function toggleThreatSolved(id) {
   const t = threats.find(x => x.id === id);
-  if (t) { t.solved = !t.solved; renderThreats(); }
+  if (t) { t.solved = !t.solved; renderThreats(); saveAll(); }
 }
 function toggleDevSolved(id) {
   const d = deviations.find(x => x.id === id);
-  if (d) { d.solved = !d.solved; renderDeviations(); }
+  if (d) { d.solved = !d.solved; renderDeviations(); saveAll(); }
 }
 
 // ─── PRODUCCIÓN ──────────────────────────────────────────────────────
@@ -3039,19 +3141,21 @@ function setProdPlan(eq, dayId, val) {
   if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
   prodData[eq][dayId].plan = val;
   renderProdTable();
+  saveAll();
 }
 function setProdReal(eq, dayId, val) {
   if (!prodData[eq]) prodData[eq]={};
   if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
   prodData[eq][dayId].real = val;
   renderProdTable();
+  saveAll();
 }
 function addProdNote(eq, dayId) {
   if (!prodData[eq]) prodData[eq]={};
   if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
   const current = prodData[eq][dayId].note || '';
   const newNote = prompt(`Nota para ${eq} (opcional):`, current);
-  if (newNote !== null) { prodData[eq][dayId].note = newNote; renderProdTable(); }
+  if (newNote !== null) { prodData[eq][dayId].note = newNote; renderProdTable(); saveAll(); }
 }
 function showProdTooltip(e, eq, dayId) {
   const cell = (prodData[eq]||{})[dayId]||{};
@@ -3119,11 +3223,12 @@ function saveQuiebre() {
   }
   closeQuiebreModal();
   renderQuiebres();
+  saveAll();
 }
-function deleteQuiebre(id) { quiebres = quiebres.filter(x => x.id !== id); renderQuiebres(); }
+function deleteQuiebre(id) { quiebres = quiebres.filter(x => x.id !== id); renderQuiebres(); saveAll(); }
 function toggleQuiebreSolved(id) {
   const q = quiebres.find(x => x.id === id);
-  if (q) { q.solved = !q.solved; renderQuiebres(); }
+  if (q) { q.solved = !q.solved; renderQuiebres(); saveAll(); }
 }
 function setQuiebreFilter(f) {
   quiebreFilter = f;
@@ -3693,6 +3798,7 @@ function addGanttImage(event) {
     ganttImages.push({ id: ganttImgNextId++, name, src: e.target.result });
     renderGanttImgStrip();
     if (!ganttImgPanelOpen) toggleGanttImgPanel();
+    saveAll();
   };
   reader.readAsDataURL(file);
   event.target.value = '';
@@ -3701,12 +3807,13 @@ function addGanttImage(event) {
 function deleteGanttImage(id) {
   ganttImages = ganttImages.filter(x => x.id !== id);
   renderGanttImgStrip();
+  saveAll();
 }
 function renameGanttImage(id) {
   const img = ganttImages.find(x => x.id === id);
   if (!img) return;
   const newName = prompt('Nuevo nombre:', img.name);
-  if (newName && newName.trim()) { img.name = newName.trim(); renderGanttImgStrip(); }
+  if (newName && newName.trim()) { img.name = newName.trim(); renderGanttImgStrip(); saveAll(); }
 }
 function viewGanttImage(src) {
   const m = document.getElementById('imgViewModal');
@@ -3801,15 +3908,17 @@ function saveGeoLibImage() {
   }
   closeGeoLibModal();
   renderGeoLibGrid();
+  saveAll();
 }
 function deleteGeoLibImage(id) {
   if (!confirm('¿Eliminar esta imagen?')) return;
   geoLibImages = geoLibImages.filter(x => x.id !== id);
   renderGeoLibGrid();
+  saveAll();
 }
 function toggleGeoLibActive(id) {
   const img = geoLibImages.find(x => x.id === id);
-  if (img) { img.active = !img.active; renderGeoLibGrid(); }
+  if (img) { img.active = !img.active; renderGeoLibGrid(); saveAll(); }
 }
 function viewGeoLibImage(id) {
   const img = geoLibImages.find(x => x.id === id);
@@ -3900,25 +4009,33 @@ function renderGeoLibGrid() {
 document.getElementById('geoLibModal').addEventListener('click', function(e) { if(e.target===this) closeGeoLibModal(); });
 
 // ─── INIT ─────────────────────────────────────────────────────────────
-applyWeekToDays(); // sets days to current Fri-Thu week
-render();
-renderThreats();
-renderDeviations();
-renderQuiebres();
-updateCompliance();
-updateFaseMsBtn();
-updateKpiCards();
-updateWeekLabels();
-initProdDays();
-renderProdTable();
+// Only render UI skeleton on load — data loads after login
+document.getElementById('loginUser').focus();
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
-function doLogin() {
+async function doLogin() {
   const u = (document.getElementById('loginUser').value||'').trim();
   const p = (document.getElementById('loginPass').value||'').trim();
   if (u === 'Pelambres' && p === 'AMSA2026') {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appShell').style.display = 'block';
+    // Show loading
+    document.getElementById('saveIndicator').textContent = '⏳ Cargando datos…';
+    document.getElementById('saveIndicator').style.color = '#f59e0b';
+    // Load from Supabase
+    await loadAll();
+    // Init app
+    initDayVisible();
+    render();
+    renderThreats();
+    renderDeviations();
+    renderQuiebres();
+    updateCompliance();
+    updateFaseMsBtn();
+    updateKpiCards();
+    initProdDays();
+    renderProdTable();
+    renderGanttImgStrip();
   } else {
     document.getElementById('loginError').style.display = 'block';
     document.getElementById('loginPass').value = '';
@@ -3931,8 +4048,6 @@ function doLogout() {
   document.getElementById('loginPass').value = '';
   document.getElementById('loginError').style.display = 'none';
 }
-// focus user field on load
-document.getElementById('loginUser').focus();
 
 // ─── TABS ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
