@@ -802,161 +802,130 @@
   <button class="app-tab" id="tab-quiebre" onclick="switchTab('quiebre')">📉 Quiebre de Plan</button>
   <button class="app-tab" id="tab-amenazas" onclick="switchTab('amenazas')">⚠️ Amenazas / Desviaciones</button>
   <div style="flex:1"></div>
-  <span id="saveIndicator" style="font-size:11px;color:#10b981;padding:0 10px;align-self:center;"></span>
-  <button onclick="doLogout()" style="font-size:11px;background:none;border:1px solid #3a3936;color:#a8a59f;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;">Cerrar sesión</button>
+  <!-- Save indicator + button -->
+  <span id="saveIndicator" style="font-size:11px;padding:0 8px;align-self:center;"></span>
+  <button onclick="saveAll()" id="btnSave"
+    style="font-size:11px;font-weight:600;background:#c8a84b;color:#1e1d1a;border:none;padding:5px 14px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;display:flex;align-items:center;gap:5px;">
+    💾 Guardar cambios
+  </button>
+  <button onclick="doLogout()" style="font-size:11px;background:none;border:1px solid #3a3936;color:#a8a59f;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;margin-left:6px;">Cerrar sesión</button>
 </div>
 
 <!-- TAB CONTENTS -->
 <div id="page-gantt" class="tab-page">
-<!-- GANTT HEADER -->
-<div style="background:#fff;border-bottom:1px solid var(--border);">
-
-  <!-- Row 1: Title + Week nav + Actions -->
-  <div style="display:flex;align-items:center;padding:10px 20px;gap:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:17px;font-weight:700;color:#1a1916;">Plan Semanal</span>
-        <span id="weekPhaseLabel" style="font-size:13px;font-weight:600;color:#3b82f6;background:#eff6ff;border-radius:4px;padding:2px 8px;"></span>
-        <span id="weekDateLabel" style="font-size:12px;color:#6b7280;"></span>
-        <span id="totalBadge" style="font-size:11px;background:#f3f4f6;color:#374151;border-radius:10px;padding:2px 8px;font-weight:500;"></span>
-      </div>
-    </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-      <!-- Week navigator -->
-      <div style="display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
-        <button onclick="weekNav(-1)" style="padding:5px 10px;background:var(--bg);border:none;cursor:pointer;font-size:14px;color:var(--text-muted);border-right:1px solid var(--border);">‹</button>
-        <span id="weekNavLabel" style="padding:5px 14px;font-size:12px;font-weight:500;color:var(--text);background:#fff;white-space:nowrap;"></span>
-        <button onclick="weekNav(1)" style="padding:5px 10px;background:var(--bg);border:none;cursor:pointer;font-size:14px;color:var(--text-muted);border-left:1px solid var(--border);">›</button>
-      </div>
-      <input type="text" id="searchInput" placeholder="🔍 Buscar actividad…" oninput="filterRows()" style="font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--border);font-family:inherit;width:180px;">
-      <div class="fase-multiselect-wrap" id="faseMsWrap">
-        <button class="fase-multiselect-btn" onclick="toggleFaseDropdown()" id="faseMsBtn" style="height:30px;">
-          🏷 Fases <span id="faseMsCount" style="font-size:10px;opacity:.7"></span>
-        </button>
-        <div class="fase-dropdown" id="faseDropdown">
-          <div class="fase-dropdown-item"><input type="checkbox" value="F9SE" onchange="filterRows()"> F9SE</div>
-          <div class="fase-dropdown-item"><input type="checkbox" value="F10N" onchange="filterRows()"> F10N</div>
-          <div class="fase-dropdown-item"><input type="checkbox" value="F11W" onchange="filterRows()" checked> F11W</div>
-          <div class="fase-dropdown-item"><input type="checkbox" value="F12N" onchange="filterRows()" checked> F12N</div>
-          <div class="fase-dropdown-item"><input type="checkbox" value="F12E" onchange="filterRows()"> F12E</div>
-          <div class="fase-dropdown-item"><input type="checkbox" value="Fuera de Fase" onchange="filterRows()"> Fuera de Fase</div>
-          <div class="fase-dd-footer"><button onclick="faseSelectAll()">Todas</button><button onclick="faseSelectNone()">Ninguna</button></div>
+<div class="topbar">
+  <span class="topbar-title">Carta Gantt — Plan Semanal</span>
+  <span class="topbar-badge" id="totalBadge">0 de 0</span>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-actions">
+    <input type="text" id="searchInput" placeholder="🔍  Buscar actividad…" oninput="filterRows()">
+    <div class="fase-multiselect-wrap" id="faseMsWrap">
+      <button class="fase-multiselect-btn" onclick="toggleFaseDropdown()" id="faseMsBtn">
+        🏷 Fases <span id="faseMsCount" style="font-size:10px;opacity:.7"></span>
+      </button>
+      <div class="fase-dropdown" id="faseDropdown">
+        <div class="fase-dropdown-item"><input type="checkbox" value="F9SE"  onchange="filterRows()"> F9E</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F10N" onchange="filterRows()"> F10N</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F11W" onchange="filterRows()" checked> F11W</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F12N" onchange="filterRows()" checked> F12N</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F12E" onchange="filterRows()"> F12E</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="Fuera de Fase" onchange="filterRows()"> Fuera de Fase</div>
+        <div class="fase-dd-footer">
+          <button onclick="faseSelectAll()">Todas</button>
+          <button onclick="faseSelectNone()">Ninguna</button>
         </div>
       </div>
-      <select id="filterFase" style="display:none"></select>
-      <select id="filterEstado" onchange="filterRows()" style="font-size:12px;padding:5px 8px;border-radius:5px;border:1px solid var(--border);font-family:inherit;">
-        <option value="">Todos los estados</option>
-        <option value="ok">Ok</option>
-        <option value="atr">Atraso</option>
-        <option value="crit">Crítico</option>
-        <option value="plan">Planificado</option>
-      </select>
-      <button class="btn btn-primary btn-sm" onclick="openAddActivityModal()">＋ Actividad</button>
     </div>
-  </div>
-
-  <!-- Row 2: KPI cards -->
-  <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">
-    <!-- Avance global -->
-    <div style="background:#1e293b;color:#fff;padding:12px 20px;min-width:200px;display:flex;flex-direction:column;justify-content:center;gap:4px;">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;">Avance Semanal</div>
-      <div id="kpiGlobal" style="font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;">0%</div>
-      <div class="pbar" style="height:5px;border-radius:3px;background:rgba(255,255,255,.15);"><div id="kpiGlobalBar" class="pbar-fill" style="width:0%;background:#3b82f6;height:5px;border-radius:3px;"></div></div>
-    </div>
-    <div id="kpiCards" style="display:flex;flex:1;border-left:1px solid var(--border);">
-      <!-- populated by JS -->
-    </div>
-    <!-- Compliance toggle + phases -->
-    <div style="display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--border);">
-      <div id="complianceInline" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <div id="compPhases" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
-      </div>
-      <button onclick="toggleComplianceInline()" id="btnToggleCompliance" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text-muted);font-family:inherit;white-space:nowrap;">Ocultar</button>
-    </div>
-  </div>
-
-  <!-- Row 3: Mapa de fases (image panel) -->
-  <div id="mapPanel" style="position:relative;background:#1e1d1a;overflow:hidden;max-height:260px;transition:max-height .3s ease;">
-    <!-- image area -->
-    <div id="mapImgWrap" style="width:100%;min-height:120px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
-      <div id="mapNoImg" style="color:#6b6860;text-align:center;padding:28px;">
-        <div style="font-size:13px;color:#a8a59f;font-weight:500;">🗺️ Mapa de Fases</div>
-        <div style="font-size:11px;color:#6b6860;margin-top:4px;">Carga una imagen del mapa de fases</div>
-      </div>
-      <img id="mapImg" src="" alt="Mapa de fases" style="display:none;width:100%;max-height:240px;object-fit:cover;">
-    </div>
-    <!-- overlay bar -->
-    <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;padding:6px 14px;background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent);">
-      <span style="font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center;gap:6px;">🗺️ Mapa de Fases</span>
-      <div style="margin-left:auto;display:flex;gap:6px;">
-        <button onclick="document.getElementById('mapFileInput').click()" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px);">📷 Cargar imagen</button>
-        <button onclick="toggleMapPanel()" id="mapToggleBtn" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:4px;cursor:pointer;backdrop-filter:blur(4px);">▲ Minimizar</button>
-        <input type="file" id="mapFileInput" accept="image/*" style="display:none" onchange="loadMapImage(event)">
-      </div>
-    </div>
-  </div>
-
-  <!-- Row 4: Subtoolbar (filters) -->
-  <div class="subtoolbar" style="border-top:none;border-bottom:1px solid var(--border);">
-    <label>Área:</label>
-    <select id="filterCat" onchange="filterRows()">
-      <option value="">Todas las áreas</option>
+    <select id="filterFase" style="display:none"></select>
+    <select id="filterEstado" onchange="filterRows()">
+      <option value="">Todos los estados</option>
+      <option value="ok">Ok</option>
+      <option value="atr">Atraso</option>
+      <option value="crit">Crítico</option>
+      <option value="plan">Planificado</option>
     </select>
-    <label style="margin-left:6px">Semana:</label>
-    <!-- Week date range display -->
-    <span id="weekRangeLabel" style="font-size:11px;font-weight:600;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:3px 8px;"></span>
-    <label style="margin-left:6px">Fechas:</label>
-    <div class="col-panel-wrap" id="datePanelWrap">
-      <button class="col-panel-btn" onclick="toggleDatePanel()" id="datePanelBtn">
-        📅 Fechas <span id="datePanelCount" style="font-size:10px;color:var(--text-muted)"></span>
-      </button>
-      <div class="col-panel-dropdown" id="datePanelDropdown" style="min-width:300px;">
-        <div class="cal-wrap">
-          <div style="font-size:10px;color:#888;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">Ctrl+Clic para selección múltiple · Clic normal cambia selección</div>
-          <div class="cal-nav">
-            <button onclick="calPrevMonth()">‹</button>
-            <span id="calMonthLabel"></span>
-            <button onclick="calNextMonth()">›</button>
-          </div>
-          <div class="cal-grid" id="calGrid"></div>
-          <div class="cal-footer">
-            <span class="cal-active-count" id="calActiveCount"></span>
-            <button onclick="calClearAll()">Limpiar todo</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-panel-wrap" id="colPanelWrap">
-      <button class="col-panel-btn" onclick="toggleColPanel()" id="colPanelBtn">
-        ⊞ Columnas <span id="colPanelCount" style="font-size:10px;color:var(--text-muted)"></span>
-      </button>
-      <div class="col-panel-dropdown" id="colPanelDropdown">
-        <div class="col-panel-header">
-          <span>Columnas visibles</span>
-          <button onclick="colPanelShowAll()">Mostrar todas</button>
-        </div>
-        <div id="colPanelList"></div>
-      </div>
-    </div>
-    <div class="summary-pills" id="summaryPills"></div>
+    <button class="btn btn-primary btn-sm" onclick="openAddActivityModal()">＋ Actividad</button>
   </div>
-</div><!-- /GANTT HEADER -->
+</div>
 
-<!-- GANTT IMAGES PANEL (minimized strip) -->
-<div id="ganttImgPanel" style="border-bottom:1px solid var(--border);background:var(--surface);">
-  <div style="display:flex;align-items:center;gap:8px;padding:5px 16px;cursor:pointer;user-select:none;" onclick="toggleGanttImgPanel()">
-    <span id="ganttImgArrow" style="font-size:11px;color:var(--text-muted);">▶</span>
-    <span style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.04em;">IMÁGENES DEL PLAN</span>
-    <span id="ganttImgCount" style="font-size:10px;background:var(--border);color:var(--text-muted);border-radius:8px;padding:1px 6px;">0</span>
-    <button onclick="event.stopPropagation();document.getElementById('ganttImgFileInput').click()" style="font-size:11px;padding:2px 9px;background:#1e1d1a;color:#f5f4f1;border:none;border-radius:4px;cursor:pointer;font-family:inherit;">＋ Imagen</button>
-    <input type="file" id="ganttImgFileInput" accept="image/*" style="display:none" onchange="addGanttImage(event)">
+<!-- LEGEND + COMPLIANCE INLINE -->
+<div id="legendComplianceRow" style="display:flex;align-items:center;gap:10px;padding:6px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;">
+  <!-- Leyenda lado a lado -->
+  <span style="font-size:11px;font-weight:600;color:#555;">Referencia:</span>
+  <span class="legend-item" style="font-size:11px;">
+    <span class="legend-block" style="background:repeating-linear-gradient(45deg,#7dd3fc 0,#7dd3fc 3px,#bae6fd 3px,#bae6fd 6px);border:1.5px solid #38bdf8;width:18px;height:12px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px;"></span>Planificado
+  </span>
+  <span class="legend-item" style="font-size:11px;">
+    <span class="legend-block" style="background:#fbbf24;border:1.5px solid #f59e0b;width:18px;height:12px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px;"></span>Reprogramado
+  </span>
+  <span style="font-size:10px;color:#aaa;margin-left:4px;">· Clic celda superior = planificado · inferior = reprogramado</span>
+
+  <!-- Cumplimiento a la derecha -->
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+    <div id="complianceInline" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">Cumplimiento:</span>
+      <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 8px;">
+        <span class="pct-num" id="compGlobalPct" style="font-size:14px;font-weight:700;font-family:'IBM Plex Mono',monospace;">—</span>
+        <div>
+          <div style="font-size:9px;color:var(--text-muted);">Global</div>
+          <div class="pbar" style="width:56px;height:3px;"><div class="pbar-fill" id="compGlobalBar" style="width:0%;background:#10b981;height:3px;border-radius:2px;"></div></div>
+        </div>
+      </div>
+      <div id="compPhases" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+    </div>
+    <button onclick="toggleComplianceInline()" id="btnToggleCompliance" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text-muted);font-family:inherit;white-space:nowrap;">Ocultar</button>
   </div>
-  <div id="ganttImgCarousel" style="overflow-x:auto;padding:0 16px 10px;display:none;">
-    <div id="ganttImgStrip" style="display:flex;gap:10px;align-items:flex-start;min-height:90px;">
-      <div style="font-size:11px;color:#aaa;align-self:center;font-style:italic;">Sin imágenes cargadas</div>
+</div>
+
+<!-- PANEL TOGGLE BAR (kept minimal) -->
+<div class="panel-toggle-bar" style="padding:3px 20px;"></div>
+
+<!-- SUB TOOLBAR -->
+<div class="subtoolbar">
+  <label>Área:</label>
+  <select id="filterCat" onchange="filterRows()">
+    <option value="">Todas las áreas</option>
+    <option value="P&T">P&amp;T</option>
+    <option value="Servicios Mina">Servicios Mina</option>
+    <option value="Mantenimiento">Mantenimiento</option>
+    <option value="Trabajo Eléctrico">Trabajo Eléctrico</option>
+    <option value="Fuera de Fase">Fuera de Fase</option>
+    <option value="Otro">Otro</option>
+  </select>
+  <label style="margin-left:6px">Fechas:</label>
+  <div class="col-panel-wrap" id="datePanelWrap">
+    <button class="col-panel-btn" onclick="toggleDatePanel()" id="datePanelBtn">
+      📅 Fechas <span id="datePanelCount" style="font-size:10px;color:var(--text-muted)"></span>
+    </button>
+    <div class="col-panel-dropdown" id="datePanelDropdown" style="min-width:280px;">
+      <div class="cal-wrap">
+        <div class="cal-nav">
+          <button onclick="calPrevMonth()">‹</button>
+          <span id="calMonthLabel"></span>
+          <button onclick="calNextMonth()">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-footer">
+          <span class="cal-active-count" id="calActiveCount"></span>
+          <button onclick="calClearAll()">Limpiar todo</button>
+        </div>
+      </div>
     </div>
   </div>
-</div><!-- /ganttImgPanel -->
+  <div class="col-panel-wrap" id="colPanelWrap">
+    <button class="col-panel-btn" onclick="toggleColPanel()" id="colPanelBtn">
+      ⊞ Columnas <span id="colPanelCount" style="font-size:10px;color:var(--text-muted)"></span>
+    </button>
+    <div class="col-panel-dropdown" id="colPanelDropdown">
+      <div class="col-panel-header">
+        <span>Columnas visibles</span>
+        <button onclick="colPanelShowAll()">Mostrar todas</button>
+      </div>
+      <div id="colPanelList"></div>
+    </div>
+  </div>
+  <div class="summary-pills" id="summaryPills"></div>
+</div>
 
 <div class="page-layout" style="display:block;">
 <!-- GANTT MAIN -->
@@ -1332,26 +1301,71 @@
 </div>
 
 
+
+</div><!-- /appShell -->
+
 <!-- MODAL: Nueva Imagen Geotecnia Library -->
 <div class="modal-overlay hidden" id="geoLibModal">
   <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
     <div class="modal-header">
-      <h3 id="geoLibModalTitle">Nueva Imagen Geotecnia</h3>
+      <h3 id="geoLibModalTitle">Nueva Imagen — Geotecnia</h3>
       <button class="modal-close" onclick="closeGeoLibModal()">✕</button>
     </div>
     <div class="modal-body">
+
+      <!-- 1. Imagen -->
       <div class="field full">
-        <label>Imagen</label>
-        <div id="geoLibPreviewWrap" style="border:2px dashed var(--border);border-radius:6px;padding:12px;text-align:center;cursor:pointer;min-height:80px;display:flex;align-items:center;justify-content:center;" onclick="document.getElementById('geoLibFileInput').click()">
-          <img id="geoLibPreview" src="" style="max-width:100%;max-height:180px;display:none;border-radius:4px;">
-          <div id="geoLibImgPlaceholder" style="color:var(--text-faint);font-size:12px;">📷 Clic para seleccionar imagen</div>
+        <label>Imagen <span style="color:#aaa;font-weight:400;">(requerida)</span></label>
+        <div id="geoLibPreviewWrap"
+          style="border:2px dashed var(--border);border-radius:6px;padding:16px;text-align:center;cursor:pointer;min-height:100px;display:flex;align-items:center;justify-content:center;background:#fafaf8;transition:border-color .15s;"
+          onclick="document.getElementById('geoLibFileInput').click()"
+          onmouseover="this.style.borderColor='#c8a84b'" onmouseout="this.style.borderColor='var(--border)'">
+          <img id="geoLibPreview" src="" style="max-width:100%;max-height:200px;display:none;border-radius:4px;">
+          <div id="geoLibImgPlaceholder" style="color:var(--text-faint);font-size:13px;">
+            <div style="font-size:28px;margin-bottom:6px;">📷</div>
+            Clic para seleccionar imagen
+          </div>
         </div>
         <input type="file" id="geoLibFileInput" accept="image/*" style="display:none" onchange="previewGeoLibImg(event)">
       </div>
-      <div class="field full"><label>Título / Nombre</label>
+
+      <!-- 2. Título -->
+      <div class="field full">
+        <label>Título</label>
         <input id="geoLibName" placeholder="Ej: Talud F9SE — Sector Norte">
       </div>
-      <div class="field"><label>Fase</label>
+
+      <!-- 3. Detalle de actividad -->
+      <div class="field full">
+        <label>Detalle de actividad</label>
+        <textarea id="geoLibDesc" rows="3" placeholder="Describe la actividad, condición o situación observada…"></textarea>
+      </div>
+
+      <!-- 4. Categoría Hazard -->
+      <div class="field full">
+        <label>Categoría</label>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;flex:1;font-weight:400;text-transform:none;transition:all .15s;" id="lblTrabajo">
+            <input type="radio" name="geoLibTipoR" value="trabajo" id="rTrabajo" onchange="geoLibSelectTipo('trabajo')" style="cursor:pointer;">
+            <span>🔧 Trabajo</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;flex:1;font-weight:400;text-transform:none;transition:all .15s;" id="lblHazard">
+            <input type="radio" name="geoLibTipoR" value="hazard" id="rHazard" onchange="geoLibSelectTipo('hazard')" style="cursor:pointer;">
+            <span>⚠️ Hazard</span>
+          </label>
+        </div>
+        <input type="hidden" id="geoLibTipo" value="trabajo">
+      </div>
+
+      <!-- 5. Fecha de actividad -->
+      <div class="field">
+        <label>Fecha de actividad</label>
+        <input type="date" id="geoLibFecha">
+      </div>
+
+      <!-- 6. Fase (opcional) -->
+      <div class="field">
+        <label>Fase <span style="color:#aaa;font-weight:400;">(opcional)</span></label>
         <select id="geoLibFase">
           <option value="">— Seleccionar —</option>
           <option value="F9SE">F9SE</option>
@@ -1362,24 +1376,16 @@
           <option value="Fuera de Fase">Fuera de Fase</option>
         </select>
       </div>
-      <div class="field"><label>Tipo</label>
-        <select id="geoLibTipo">
-          <option value="trabajo">🔧 Trabajo</option>
-          <option value="hazard">⚠️ Hazard</option>
-        </select>
+
+      <!-- 7. Observaciones -->
+      <div class="field full">
+        <label>Observaciones</label>
+        <textarea id="geoLibComentario" rows="2" placeholder="Observaciones adicionales, riesgos, recomendaciones…"></textarea>
       </div>
-      <div class="field full"><label>Descripción</label>
-        <textarea id="geoLibDesc" rows="2" placeholder="Descripción general de la imagen…"></textarea>
-      </div>
-      <div class="field full"><label>Trabajos pendientes</label>
-        <textarea id="geoLibPendientes" rows="2" placeholder="Listar trabajos pendientes asociados…"></textarea>
-      </div>
-      <div class="field full"><label>Comentario adicional</label>
-        <textarea id="geoLibComentario" rows="2" placeholder="Observaciones, riesgos u otro…"></textarea>
-      </div>
-      <div class="field"><label>Fecha</label>
-        <input type="date" id="geoLibFecha">
-      </div>
+
+      <!-- hidden for compat -->
+      <input type="hidden" id="geoLibPendientes" value="">
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeGeoLibModal()">Cancelar</button>
@@ -1399,78 +1405,86 @@
   </div>
 </div>
 
-</div><!-- /appShell -->
-
-<!-- Supabase SDK -->
+<!-- ═══ SUPABASE SDK ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ─── SUPABASE CONFIG ──────────────────────────────────────────────────
-const SUPA_URL  = 'https://awiyiebqugkfezktknpc.supabase.co';
-const SUPA_KEY  = 'sb_publishable_Wra2GGprwwSDrXP-MJb_Ng_kI3rKzkp';
-const supabase  = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+const SUPA_URL = 'https://awiyiebqugkfezktknpc.supabase.co';
+const SUPA_KEY = 'sb_publishable_Wra2GGprwwSDrXP-MJb_Ng_kI3rKzkp';
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ─── DB HELPERS ───────────────────────────────────────────────────────
-// Each table stores a single JSON row with id=1 containing the full state.
-// This keeps the integration simple — one row per table, full replace on save.
-
+// ── DB helpers ─────────────────────────────────────────────────────────
+// Each table holds one row (id=1) with a "data" jsonb column.
 async function dbLoad(table) {
   try {
-    const { data, error } = await supabase.from(table).select('data').eq('id', 1).single();
-    if (error) return null;
-    return data ? data.data : null;
+    const { data, error } = await sb.from(table).select('data').eq('id',1).single();
+    if (error || !data) return null;
+    return data.data;
   } catch(e) { return null; }
 }
-
 async function dbSave(table, payload) {
   try {
-    // upsert: insert if not exists, update if exists
-    const { error } = await supabase.from(table).upsert({ id: 1, data: payload, updated_at: new Date().toISOString() });
-    if (error) console.warn(`DB save error [${table}]:`, error.message);
-  } catch(e) { console.warn('DB save exception:', e); }
+    const { error } = await sb.from(table).upsert(
+      { id:1, data: payload, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+    if (error) console.warn(`[${table}] save error:`, error.message);
+    return !error;
+  } catch(e) { console.warn('[db] exception:', e); return false; }
 }
 
-// Debounce helper — avoids saving on every keystroke
-function debounce(fn, ms) {
-  let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-// Save all state at once
-const saveAll = debounce(async () => {
-  showSaveIndicator('saving');
-  await Promise.all([
-    dbSave('activities', activities),
-    dbSave('days',       days),
-    dbSave('threats',    threats),
-    dbSave('deviations', deviations),
-    dbSave('quiebres',   quiebres),
-    dbSave('production', { prodData, prodDays }),
-    dbSave('gantt_images', ganttImages),
-    dbSave('geo_images', geoLibImages),
-  ]);
-  showSaveIndicator('saved');
-}, 1200);
-
-function showSaveIndicator(state) {
-  const el = document.getElementById('saveIndicator');
+// ── Save indicator ──────────────────────────────────────────────────────
+function setSaveState(state) {
+  const el  = document.getElementById('saveIndicator');
+  const btn = document.getElementById('btnSave');
   if (!el) return;
   if (state === 'saving') {
-    el.textContent = '💾 Guardando…';
+    el.textContent = '⏳ Guardando…';
     el.style.color = '#f59e0b';
-  } else {
+    if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+  } else if (state === 'saved') {
     el.textContent = '✅ Guardado';
     el.style.color = '#10b981';
-    setTimeout(() => { el.textContent = ''; }, 3000);
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    setTimeout(() => { el.textContent = ''; }, 4000);
+  } else if (state === 'error') {
+    el.textContent = '❌ Error al guardar';
+    el.style.color = '#ef4444';
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  } else if (state === 'pending') {
+    el.textContent = '● Cambios sin guardar';
+    el.style.color = '#f59e0b';
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  } else {
+    el.textContent = '';
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
   }
 }
 
-// Load all state on login
-async function loadAll() {
-  showSaveIndicator('saving');
+// ── saveAll: called by the Save button ─────────────────────────────────
+async function saveAll() {
+  setSaveState('saving');
+  const results = await Promise.all([
+    dbSave('activities',   activities),
+    dbSave('days',         days),
+    dbSave('threats',      threats),
+    dbSave('deviations',   deviations),
+    dbSave('quiebres',     quiebres),
+    dbSave('production',   { prodData, prodDays }),
+    dbSave('geo_images',   geoLibImages),
+  ]);
+  const allOk = results.every(r => r !== false);
+  setSaveState(allOk ? 'saved' : 'error');
+}
 
+// ── markPending: called whenever state changes ─────────────────────────
+function markPending() { setSaveState('pending'); }
+
+// ── loadAll: loads everything from Supabase ────────────────────────────
+async function loadAll() {
+  setSaveState('saving');
   const [
     actData, daysData, threatData, devData,
-    quiebreData, prodDBData, ganttImgData, geoImgData
+    quiebreData, prodDBData, geoImgData
   ] = await Promise.all([
     dbLoad('activities'),
     dbLoad('days'),
@@ -1478,27 +1492,44 @@ async function loadAll() {
     dbLoad('deviations'),
     dbLoad('quiebres'),
     dbLoad('production'),
-    dbLoad('gantt_images'),
     dbLoad('geo_images'),
   ]);
 
-  if (actData)     { activities = actData; nextId = Math.max(...activities.map(a=>a.id), 0) + 1; }
-  if (daysData)    { days = daysData; dayVisible = {}; days.forEach(d => dayVisible[d.id] = true); }
-  if (threatData)  { threats = threatData; threatNextId = Math.max(...threats.map(t=>t.id), 0) + 1; }
-  if (devData)     { deviations = devData; devNextId = Math.max(...deviations.map(d=>d.id), 0) + 1; }
-  if (quiebreData) { quiebres = quiebreData; quiebreNextId = Math.max(...quiebres.map(q=>q.id), 0) + 1; }
-  if (prodDBData)  {
-    if (prodDBData.prodData) prodData = prodDBData.prodData;
-    if (prodDBData.prodDays) { prodDays = prodDBData.prodDays; }
+  if (actData && Array.isArray(actData)) {
+    activities = actData;
+    nextId = Math.max(0, ...activities.map(a => a.id||0)) + 1;
   }
-  if (ganttImgData) { ganttImages = ganttImgData; ganttImgNextId = Math.max(...ganttImages.map(i=>i.id), 0) + 1; }
-  if (geoImgData)   { geoLibImages = geoImgData; geoLibNextId = Math.max(...geoLibImages.map(i=>i.id), 0) + 1; }
-
-  document.getElementById('saveIndicator').textContent = '';
+  if (daysData && Array.isArray(daysData)) {
+    days = daysData;
+    dayVisible = {};
+    days.forEach(d => dayVisible[d.id] = true);
+  }
+  if (threatData && Array.isArray(threatData)) {
+    threats = threatData;
+    threatNextId = Math.max(0, ...threats.map(t => t.id||0)) + 1;
+  }
+  if (devData && Array.isArray(devData)) {
+    deviations = devData;
+    devNextId = Math.max(0, ...deviations.map(d => d.id||0)) + 1;
+  }
+  if (quiebreData && Array.isArray(quiebreData)) {
+    quiebres = quiebreData;
+    quiebreNextId = Math.max(0, ...quiebres.map(q => q.id||0)) + 1;
+  }
+  if (prodDBData) {
+    if (prodDBData.prodData) prodData = prodDBData.prodData;
+    if (prodDBData.prodDays && Array.isArray(prodDBData.prodDays)) prodDays = prodDBData.prodDays;
+  }
+  if (geoImgData && Array.isArray(geoImgData)) {
+    geoLibImages = geoImgData;
+    geoLibNextId = Math.max(0, ...geoLibImages.map(i => i.id||0)) + 1;
+  }
+  setSaveState('');
 }
 </script>
 
 <script>
+// ─── STATE ───────────────────────────────────────────────────────────
 let days = [
   {id:'d0', name:'Vie 08', shifts:['A','B']},
   {id:'d1', name:'Sáb 09', shifts:['A','B']},
@@ -1652,7 +1683,7 @@ function calToggleDay(key, year, month, day) {
   }
   buildCalendar();
   render();
-  saveAll();
+  markPending();
 }
 
 function calClearAll() {
@@ -2127,20 +2158,20 @@ function toggleCellPlan(id, dayId, shift) {
   if (!a) return;
   ensureCell(a, dayId, shift);
   a.cells[dayId][shift].plan = !a.cells[dayId][shift].plan;
-  renderTbody(); updateSummary(); saveAll();
+  renderTbody(); updateSummary(); markPending();
 }
 function toggleCellReprg(id, dayId, shift) {
   const a = activities.find(x => x.id === id);
   if (!a) return;
   ensureCell(a, dayId, shift);
   a.cells[dayId][shift].reprg = !a.cells[dayId][shift].reprg;
-  renderTbody(); updateSummary(); saveAll();
+  renderTbody(); updateSummary(); markPending();
 }
 
 // ─── INLINE FIELD UPDATE ─────────────────────────────────────────────
 function updateField(id, field, value) {
   const a = activities.find(x => x.id === id);
-  if (a) { a[field] = value; saveAll(); }
+  if (a) { a[field] = value; markPending(); }
 }
 
 function updatePct(id, value) {
@@ -2154,7 +2185,7 @@ function updatePct(id, value) {
     const colors = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'};
     if (fill) { fill.style.width = a.pct + '%'; fill.style.background = colors[a.estado]||'#3b82f6'; }
   }
-  updateSummary(); saveAll();
+  updateSummary(); markPending();
 }
 
 function updateEstado(id, value) {
@@ -2170,7 +2201,8 @@ function updateEstado(id, value) {
     const colors = {ok:'#10b981',atr:'#f59e0b',crit:'#ef4444',plan:'#3b82f6'};
     if (fill) fill.style.background = colors[value]||'#3b82f6';
   }
-  updateSummary(); saveAll();
+  updateSummary();
+  markPending();
 }
 
 // ─── SUMMARY ─────────────────────────────────────────────────────────
@@ -2183,10 +2215,6 @@ function updateSummary() {
     <span class="pill pill-crit"><span class="dot"></span> ${counts.crit} Crítico</span>
     <span class="pill pill-plan"><span class="dot"></span> ${counts.plan} Planificado</span>
   `;
-  updateKpiCards();
-  // update totalBadge
-  const tb = document.getElementById('totalBadge');
-  if (tb) tb.textContent = `${activities.length} actividades`;
 }
 
 function updateCompliance() {
@@ -2263,10 +2291,7 @@ document.addEventListener('click', e => {
 
 // ─── FILTERS ─────────────────────────────────────────────────────────
 function updateFilterOptions() {
-  const cats  = [...new Set(activities.map(a => a.cat))].sort();
-  const fCat  = document.getElementById('filterCat');
-  const prevC = fCat.value;
-  fCat.innerHTML  = '<option value="">Todas las áreas</option>' + cats.map(c=>`<option value="${c}"${c===prevC?' selected':''}>${c}</option>`).join('');
+  // filterCat uses fixed list defined in HTML — no dynamic update needed
 }
 
 function filterRows() {
@@ -2457,12 +2482,14 @@ function saveActivity() {
   }
   closeActivityModal();
   render();
-  saveAll();
+  markPending();
 }
+
+function deleteActivity(id) {
   if (!confirm('¿Eliminar esta actividad?')) return;
   activities = activities.filter(a => a.id !== id);
   render();
-  saveAll();
+  markPending();
 }
 
 // ─── IMAGE ───────────────────────────────────────────────────────────
@@ -2545,12 +2572,12 @@ function saveThreat() {
   }
   closeThreatModal();
   renderThreats();
-  saveAll();
+  markPending();
 }
 function deleteThreat(id) {
   threats = threats.filter(x => x.id !== id);
   renderThreats();
-  saveAll();
+  markPending();
 }
 function renderThreats() {
   const list = document.getElementById('threatsList');
@@ -2702,12 +2729,12 @@ function saveDeviation() {
   }
   closeDeviationModal();
   renderDeviations();
-  saveAll();
+  markPending();
 }
 function deleteDeviation(id) {
   deviations = deviations.filter(x => x.id !== id);
   renderDeviations();
-  saveAll();
+  markPending();
 }
 function renderDeviations() {
   const list = document.getElementById('deviationsList');
@@ -2843,11 +2870,11 @@ function setDevFilter(f) {
 }
 function toggleThreatSolved(id) {
   const t = threats.find(x => x.id === id);
-  if (t) { t.solved = !t.solved; renderThreats(); saveAll(); }
+  if (t) { t.solved = !t.solved; renderThreats(); markPending(); }
 }
 function toggleDevSolved(id) {
   const d = deviations.find(x => x.id === id);
-  if (d) { d.solved = !d.solved; renderDeviations(); saveAll(); }
+  if (d) { d.solved = !d.solved; renderDeviations(); markPending(); }
 }
 
 // ─── PRODUCCIÓN ──────────────────────────────────────────────────────
@@ -3141,21 +3168,21 @@ function setProdPlan(eq, dayId, val) {
   if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
   prodData[eq][dayId].plan = val;
   renderProdTable();
-  saveAll();
+  markPending();
 }
 function setProdReal(eq, dayId, val) {
   if (!prodData[eq]) prodData[eq]={};
   if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
   prodData[eq][dayId].real = val;
   renderProdTable();
-  saveAll();
+  markPending();
 }
 function addProdNote(eq, dayId) {
   if (!prodData[eq]) prodData[eq]={};
   if (!prodData[eq][dayId]) prodData[eq][dayId]={plan:'',real:'',note:''};
   const current = prodData[eq][dayId].note || '';
   const newNote = prompt(`Nota para ${eq} (opcional):`, current);
-  if (newNote !== null) { prodData[eq][dayId].note = newNote; renderProdTable(); saveAll(); }
+  if (newNote !== null) { prodData[eq][dayId].note = newNote; renderProdTable(); markPending(); }
 }
 function showProdTooltip(e, eq, dayId) {
   const cell = (prodData[eq]||{})[dayId]||{};
@@ -3223,12 +3250,12 @@ function saveQuiebre() {
   }
   closeQuiebreModal();
   renderQuiebres();
-  saveAll();
+  markPending();
 }
-function deleteQuiebre(id) { quiebres = quiebres.filter(x => x.id !== id); renderQuiebres(); saveAll(); }
+function deleteQuiebre(id) { quiebres = quiebres.filter(x => x.id !== id); renderQuiebres(); markPending(); }
 function toggleQuiebreSolved(id) {
   const q = quiebres.find(x => x.id === id);
-  if (q) { q.solved = !q.solved; renderQuiebres(); saveAll(); }
+  if (q) { q.solved = !q.solved; renderQuiebres(); markPending(); }
 }
 function setQuiebreFilter(f) {
   quiebreFilter = f;
@@ -3566,206 +3593,7 @@ document.getElementById('geoImageModal').addEventListener('click', function(e) {
   if(e.target===this) closeGeoImageModal();
 });
 
-// ─── WEEK NAVIGATOR ──────────────────────────────────────────────────
-// Weeks run Fri→Thu. Find current week's Friday.
-let currentWeekOffset = 0; // 0 = current week
-
-function getWeekStart(offset) {
-  const today = new Date();
-  // Find last Friday (or today if Friday)
-  const dow = today.getDay(); // 0=Sun,1=Mon,...,5=Fri,6=Sat
-  const daysToFriday = (dow >= 5) ? (dow - 5) : (dow + 2); // days since last Friday
-  const friday = new Date(today);
-  friday.setDate(today.getDate() - daysToFriday + (offset * 7));
-  friday.setHours(0,0,0,0);
-  return friday;
-}
-function getWeekEnd(offset) {
-  const start = getWeekStart(offset);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6); // Thu
-  return end;
-}
-
-function weekNav(dir) {
-  currentWeekOffset += dir;
-  applyWeekToDays();
-  updateWeekLabels();
-}
-
-function applyWeekToDays() {
-  const start = getWeekStart(currentWeekOffset);
-  // Build 7 days (Fri→Thu)
-  const newDays = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const id = 'd' + i;
-    const existing = days.find(x => x.id === id);
-    newDays.push({
-      id,
-      name: fmtDayNameWeek(d),
-      date: d,
-      shifts: existing ? existing.shifts : ['A','B']
-    });
-  }
-  days = newDays;
-  dayVisible = {};
-  days.forEach(d => dayVisible[d.id] = true);
-  // Update activities cells to include new day IDs
-  activities.forEach(a => {
-    days.forEach(d => {
-      if (!a.cells[d.id]) a.cells[d.id] = {};
-    });
-  });
-  render();
-  updateWeekLabels();
-  buildCalendar(); // refresh date panel
-}
-
-function fmtDayNameWeek(d) {
-  const dows = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  return `${dows[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function updateWeekLabels() {
-  const start = getWeekStart(currentWeekOffset);
-  const end = getWeekEnd(currentWeekOffset);
-  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const fmt = d => `${d.getDate()} ${months[d.getMonth()]}`;
-  const yr = end.getFullYear();
-  const label = `${fmt(start)} – ${fmt(end)} ${yr}`;
-  const navEl = document.getElementById('weekNavLabel');
-  if (navEl) navEl.textContent = label;
-  const rangeEl = document.getElementById('weekRangeLabel');
-  if (rangeEl) rangeEl.textContent = label;
-  const dateEl = document.getElementById('weekDateLabel');
-  if (dateEl) dateEl.textContent = label;
-  // Semana number (approximate)
-  const onejan = new Date(yr,0,1);
-  const weekNum = Math.ceil(((start - onejan) / 86400000 + onejan.getDay() + 1) / 7);
-  const phaseEl = document.getElementById('weekPhaseLabel');
-  if (phaseEl) phaseEl.textContent = `Semana ${weekNum}`;
-}
-
-// ─── MAP PANEL ───────────────────────────────────────────────────────
-let mapPanelOpen = true;
-function toggleMapPanel() {
-  mapPanelOpen = !mapPanelOpen;
-  const panel = document.getElementById('mapPanel');
-  const btn = document.getElementById('mapToggleBtn');
-  if (panel) panel.style.maxHeight = mapPanelOpen ? '260px' : '0px';
-  if (btn) btn.textContent = mapPanelOpen ? '▲ Minimizar' : '▼ Expandir';
-}
-function loadMapImage(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = document.getElementById('mapImg');
-    const noImg = document.getElementById('mapNoImg');
-    if (img) { img.src = e.target.result; img.style.display = 'block'; }
-    if (noImg) noImg.style.display = 'none';
-    if (!mapPanelOpen) toggleMapPanel();
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-}
-
-// ─── KPI CARDS ───────────────────────────────────────────────────────
-function updateKpiCards() {
-  const counts = {ok:0, atr:0, crit:0, plan:0};
-  activities.forEach(a => { if (counts[a.estado] !== undefined) counts[a.estado]++; });
-  const total = activities.length;
-  const globalPct = total > 0 ? Math.round(counts.ok / total * 100) : 0;
-
-  const kpiEl = document.getElementById('kpiGlobal');
-  const kpiBar = document.getElementById('kpiGlobalBar');
-  if (kpiEl) kpiEl.textContent = globalPct + '%';
-  if (kpiBar) { kpiBar.style.width = globalPct+'%'; kpiBar.style.background = globalPct>=80?'#10b981':globalPct>=50?'#f59e0b':'#ef4444'; }
-
-  const cards = document.getElementById('kpiCards');
-  if (!cards) return;
-  const defs = [
-    {key:'ok',   label:'Completadas', color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0'},
-    {key:'atr',  label:'Retrasadas',  color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
-    {key:'crit', label:'Críticas',    color:'#dc2626', bg:'#fef2f2', border:'#fecaca'},
-    {key:'plan', label:'Pendientes',  color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
-  ];
-  cards.innerHTML = defs.map(d => `
-    <div style="flex:1;padding:10px 16px;border-right:1px solid var(--border);background:${d.bg};">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${d.color};margin-bottom:4px;">${d.label}</div>
-      <div style="font-size:28px;font-weight:700;color:${d.color};font-family:'IBM Plex Mono',monospace;line-height:1;">${counts[d.key]}</div>
-    </div>`).join('');
-}
-
-// ─── CALENDAR WITH CTRL-CLICK ─────────────────────────────────────────
-// Override the calToggleDay to support ctrl+click multi-select
-function calToggleDayCtrl(key, year, month, day, ctrlKey) {
-  const active = activeDayMap();
-  if (ctrlKey) {
-    // Multi-select: toggle without changing others
-    if (active[key]) {
-      const d = active[key];
-      days = days.filter(x => x.id !== d.id);
-      delete dayVisible[d.id];
-    } else {
-      const dateObj = new Date(year, month, day);
-      const id = 'd' + dateObj.getTime();
-      const newDay = { id, name: fmtDayName(dateObj), date: dateObj, shifts: ['A','B'] };
-      days.push(newDay);
-      days.sort((a,b) => (a.date?a.date.getTime():0) - (b.date?b.date.getTime():0));
-      dayVisible[id] = true;
-      activities.forEach(a => { if (!a.cells[id]) a.cells[id] = {}; });
-    }
-  } else {
-    // Normal click: keep original behavior
-    calToggleDay(key, year, month, day);
-    return;
-  }
-  buildCalendar();
-  render();
-}
-
-// Override buildCalendar to pass ctrlKey
-const _origBuildCal = buildCalendar;
-function buildCalendar() {
-  const grid = document.getElementById('calGrid');
-  const label = document.getElementById('calMonthLabel');
-  if (!grid || !label) return;
-  const year = calViewDate.getFullYear();
-  const month = calViewDate.getMonth();
-  label.textContent = `${MON_ES[month]} ${year}`;
-  const active = activeDayMap();
-  const today = new Date(); today.setHours(0,0,0,0);
-  grid.innerHTML = DOW_ES.map(d=>`<div class="cal-dow">${d}</div>`).join('');
-  const firstDay = new Date(year, month, 1);
-  let startDow = (firstDay.getDay() + 6) % 7;
-  for (let i = 0; i < startDow; i++) grid.innerHTML += `<div class="cal-empty cal-day"></div>`;
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(year, month, day);
-    const k = dateKey(d);
-    const isActive = !!active[k];
-    const isToday = d.getTime() === today.getTime();
-    const cls = ['cal-day', isActive ? 'cal-active' : '', isToday ? 'cal-today' : ''].filter(Boolean).join(' ');
-    const div = document.createElement('div');
-    div.className = cls;
-    div.textContent = day;
-    div.title = fmtDayName(d);
-    div.addEventListener('click', ev => {
-      calToggleDayCtrl(k, year, month, day, ev.ctrlKey || ev.metaKey);
-    });
-    grid.appendChild(div);
-  }
-  const activeCount = days.length;
-  const countEl = document.getElementById('calActiveCount');
-  if (countEl) countEl.textContent = `${activeCount} día${activeCount!==1?'s':''}`;
-  updateDatePanelCount();
-}
-
-// ─── UPDATE SUMMARY overriding to also update KPI ────────────────────
-const _origUpdateSummary = typeof updateSummary === 'function' ? updateSummary : null;
+// ─── COMPLIANCE INLINE TOGGLE ────────────────────────────────────────
 function toggleComplianceInline() {
   const el = document.getElementById('complianceInline');
   const btn = document.getElementById('btnToggleCompliance');
@@ -3777,70 +3605,6 @@ function toggleComplianceInline() {
 function toggleComplianceBar() { toggleComplianceInline(); }
 
 // ─── GANTT IMAGES PANEL ──────────────────────────────────────────────
-let ganttImages = []; // {id, name, src}
-let ganttImgNextId = 1;
-let ganttImgPanelOpen = false;
-
-function toggleGanttImgPanel() {
-  ganttImgPanelOpen = !ganttImgPanelOpen;
-  const carousel = document.getElementById('ganttImgCarousel');
-  const arrow = document.getElementById('ganttImgArrow');
-  if (carousel) carousel.style.display = ganttImgPanelOpen ? 'block' : 'none';
-  if (arrow) { arrow.textContent = ganttImgPanelOpen ? '▼' : '▶'; arrow.style.transform = ''; }
-}
-
-function addGanttImage(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const name = prompt('Nombre para esta imagen:', file.name.replace(/\.[^.]+$/,'')) || file.name;
-  const reader = new FileReader();
-  reader.onload = e => {
-    ganttImages.push({ id: ganttImgNextId++, name, src: e.target.result });
-    renderGanttImgStrip();
-    if (!ganttImgPanelOpen) toggleGanttImgPanel();
-    saveAll();
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-}
-
-function deleteGanttImage(id) {
-  ganttImages = ganttImages.filter(x => x.id !== id);
-  renderGanttImgStrip();
-  saveAll();
-}
-function renameGanttImage(id) {
-  const img = ganttImages.find(x => x.id === id);
-  if (!img) return;
-  const newName = prompt('Nuevo nombre:', img.name);
-  if (newName && newName.trim()) { img.name = newName.trim(); renderGanttImgStrip(); saveAll(); }
-}
-function viewGanttImage(src) {
-  const m = document.getElementById('imgViewModal');
-  const i = document.getElementById('imgViewSrc');
-  if (m && i) { i.src = src; m.classList.remove('hidden'); }
-}
-
-function renderGanttImgStrip() {
-  const strip = document.getElementById('ganttImgStrip');
-  const count = document.getElementById('ganttImgCount');
-  if (!strip) return;
-  if (count) count.textContent = ganttImages.length;
-  if (ganttImages.length === 0) {
-    strip.innerHTML = '<div style="font-size:11px;color:#aaa;align-self:center;font-style:italic;">Sin imágenes cargadas</div>';
-    return;
-  }
-  strip.innerHTML = ganttImages.map(img => `
-    <div class="gantt-img-thumb">
-      <img src="${img.src}" onclick="viewGanttImage('${img.src}')" title="${img.name}">
-      <div class="gantt-img-thumb-name">${img.name}</div>
-      <div class="gantt-img-thumb-actions">
-        <button onclick="renameGanttImage(${img.id})" style="background:#1e1d1a;color:#f5f4f1;" title="Renombrar">✏</button>
-        <button onclick="deleteGanttImage(${img.id})" style="background:#ef4444;color:#fff;" title="Eliminar">×</button>
-      </div>
-    </div>`).join('');
-}
-
 // ─── GEOTECNIA LIBRARY ───────────────────────────────────────────────
 let geoLibImages = [];
 let geoLibNextId = 1;
@@ -3849,17 +3613,33 @@ let geoLibTipoFilter = 'all';
 let geoLibVigFilter = 'all';
 let editingGeoLibId = null;
 
+function geoLibSelectTipo(val) {
+  document.getElementById('geoLibTipo').value = val;
+  const lblT = document.getElementById('lblTrabajo');
+  const lblH = document.getElementById('lblHazard');
+  if (lblT) { lblT.style.borderColor = val==='trabajo' ? '#3b82f6' : 'var(--border)'; lblT.style.background = val==='trabajo' ? '#eff6ff' : ''; }
+  if (lblH) { lblH.style.borderColor = val==='hazard'  ? '#f59e0b' : 'var(--border)'; lblH.style.background = val==='hazard'  ? '#fffbeb' : ''; }
+}
+
 function openGeoLibModal(id) {
   editingGeoLibId = id || null;
   const img = id ? geoLibImages.find(x => x.id === id) : null;
-  document.getElementById('geoLibModalTitle').textContent = img ? 'Editar Imagen' : 'Nueva Imagen Geotecnia';
+  document.getElementById('geoLibModalTitle').textContent = img ? 'Editar Imagen' : 'Nueva Imagen — Geotecnia';
   document.getElementById('geoLibName').value = img ? img.name : '';
-  document.getElementById('geoLibFase').value = img ? img.fase : '';
-  document.getElementById('geoLibTipo').value = img ? img.tipo : 'trabajo';
-  document.getElementById('geoLibDesc').value = img ? img.desc : '';
-  document.getElementById('geoLibPendientes').value = img ? img.pendientes : '';
-  document.getElementById('geoLibComentario').value = img ? img.comentario : '';
+  document.getElementById('geoLibFase').value = img ? (img.fase||'') : '';
+  document.getElementById('geoLibDesc').value = img ? (img.desc||'') : '';
+  document.getElementById('geoLibPendientes').value = img ? (img.pendientes||'') : '';
+  document.getElementById('geoLibComentario').value = img ? (img.comentario||'') : '';
   document.getElementById('geoLibFecha').value = img ? (img.fecha||'') : new Date().toISOString().slice(0,10);
+  // tipo via radio
+  const tipo = img ? (img.tipo||'trabajo') : 'trabajo';
+  document.getElementById('geoLibTipo').value = tipo;
+  const rTrabajo = document.getElementById('rTrabajo');
+  const rHazard  = document.getElementById('rHazard');
+  if (rTrabajo) rTrabajo.checked = tipo === 'trabajo';
+  if (rHazard)  rHazard.checked  = tipo === 'hazard';
+  geoLibSelectTipo(tipo);
+  // preview
   const preview = document.getElementById('geoLibPreview');
   const placeholder = document.getElementById('geoLibImgPlaceholder');
   if (img && img.src) {
@@ -3908,17 +3688,17 @@ function saveGeoLibImage() {
   }
   closeGeoLibModal();
   renderGeoLibGrid();
-  saveAll();
+  markPending();
 }
 function deleteGeoLibImage(id) {
   if (!confirm('¿Eliminar esta imagen?')) return;
   geoLibImages = geoLibImages.filter(x => x.id !== id);
   renderGeoLibGrid();
-  saveAll();
+  markPending();
 }
 function toggleGeoLibActive(id) {
   const img = geoLibImages.find(x => x.id === id);
-  if (img) { img.active = !img.active; renderGeoLibGrid(); saveAll(); }
+  if (img) { img.active = !img.active; renderGeoLibGrid(); markPending(); }
 }
 function viewGeoLibImage(id) {
   const img = geoLibImages.find(x => x.id === id);
@@ -4009,7 +3789,7 @@ function renderGeoLibGrid() {
 document.getElementById('geoLibModal').addEventListener('click', function(e) { if(e.target===this) closeGeoLibModal(); });
 
 // ─── INIT ─────────────────────────────────────────────────────────────
-// Only render UI skeleton on load — data loads after login
+// Render skeleton only; real data loads after login
 document.getElementById('loginUser').focus();
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
@@ -4018,13 +3798,16 @@ async function doLogin() {
   const p = (document.getElementById('loginPass').value||'').trim();
   if (u === 'Pelambres' && p === 'AMSA2026') {
     document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('appShell').style.display = 'block';
-    // Show loading
+    document.getElementById('appShell').style.display   = 'block';
+
+    // Show loading state
+    setSaveState('saving');
     document.getElementById('saveIndicator').textContent = '⏳ Cargando datos…';
-    document.getElementById('saveIndicator').style.color = '#f59e0b';
+
     // Load from Supabase
     await loadAll();
-    // Init app
+
+    // Boot the app
     initDayVisible();
     render();
     renderThreats();
@@ -4032,21 +3815,23 @@ async function doLogin() {
     renderQuiebres();
     updateCompliance();
     updateFaseMsBtn();
-    updateKpiCards();
     initProdDays();
     renderProdTable();
-    renderGanttImgStrip();
+    renderGeoLibGrid();
+
   } else {
     document.getElementById('loginError').style.display = 'block';
     document.getElementById('loginPass').value = '';
   }
 }
+
 function doLogout() {
-  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('appShell').style.display   = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
   document.getElementById('loginError').style.display = 'none';
+  setSaveState('');
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────
@@ -4058,9 +3843,9 @@ function switchTab(tab) {
   const btn = document.getElementById('tab-' + tab);
   if (btn) btn.classList.add('active');
   if (tab === 'produccion') { initProdDays(); renderProdTable(); buildProdCal(); }
-  if (tab === 'amenazas') { renderThreats(); renderDeviations(); }
-  if (tab === 'geotecnia') { renderGeoLibGrid(); }
-  if (tab === 'quiebre') { renderQuiebres(); }
+  if (tab === 'amenazas')   { renderThreats(); renderDeviations(); }
+  if (tab === 'geotecnia')  { renderGeoLibGrid(); }
+  if (tab === 'quiebre')    { renderQuiebres(); }
 }
 </script>
 </body>
