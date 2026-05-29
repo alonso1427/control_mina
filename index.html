@@ -1307,9 +1307,14 @@ function setSaveState(state) {
 // ── saveAll: called by the Save button ─────────────────────────────────
 async function saveAll() {
   setSaveState('saving');
+  // Serialize days: convert Date objects to ISO strings for JSON storage
+  const daysToSave = days.map(d => ({
+    ...d,
+    date: d.date instanceof Date ? d.date.toISOString() : (d.date || null)
+  }));
   const results = await Promise.all([
     dbSave('activities',   activities),
-    dbSave('days',         days),
+    dbSave('days',         daysToSave),
     dbSave('threats',      threats),
     dbSave('deviations',   deviations),
     dbSave('quiebres',     quiebres),
@@ -1343,11 +1348,16 @@ async function loadAll() {
     activities = actData;
     nextId = Math.max(0, ...activities.map(a => a.id||0)) + 1;
   }
-  if (daysData && Array.isArray(daysData)) {
-    days = daysData;
+  if (daysData && Array.isArray(daysData) && daysData.length > 0) {
+    // Reconstruct date objects — JSON serialization loses Date type
+    days = daysData.map(d => ({
+      ...d,
+      date: d.date ? new Date(d.date) : null
+    }));
     dayVisible = {};
     days.forEach(d => dayVisible[d.id] = true);
   }
+  // If days is empty after load, keep the default days defined in state
   if (threatData && Array.isArray(threatData)) {
     threats = threatData;
     threatNextId = Math.max(0, ...threats.map(t => t.id||0)) + 1;
