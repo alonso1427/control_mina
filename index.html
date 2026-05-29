@@ -808,12 +808,12 @@
         🏷 Fases <span id="faseMsCount" style="font-size:10px;opacity:.7"></span>
       </button>
       <div class="fase-dropdown" id="faseDropdown">
-        <div class="fase-dropdown-item"><input type="checkbox" value="F9SE"  onchange="filterRows()"> F9E</div>
-        <div class="fase-dropdown-item"><input type="checkbox" value="F10N" onchange="filterRows()"> F10N</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F9SE"  onchange="filterRows()" checked> F9SE</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F10N" onchange="filterRows()" checked> F10N</div>
         <div class="fase-dropdown-item"><input type="checkbox" value="F11W" onchange="filterRows()" checked> F11W</div>
         <div class="fase-dropdown-item"><input type="checkbox" value="F12N" onchange="filterRows()" checked> F12N</div>
-        <div class="fase-dropdown-item"><input type="checkbox" value="F12E" onchange="filterRows()"> F12E</div>
-        <div class="fase-dropdown-item"><input type="checkbox" value="Fuera de Fase" onchange="filterRows()"> Fuera de Fase</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="F12E" onchange="filterRows()" checked> F12E</div>
+        <div class="fase-dropdown-item"><input type="checkbox" value="Fuera de Fase" onchange="filterRows()" checked> Fuera de Fase</div>
         <div class="fase-dd-footer">
           <button onclick="faseSelectAll()">Todas</button>
           <button onclick="faseSelectNone()">Ninguna</button>
@@ -1248,6 +1248,9 @@
 
 </div><!-- /appShell -->
 
+<!-- ══ SUPABASE SDK ══ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
 <script>
 const SUPA_URL = 'https://awiyiebqugkfezktknpc.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3aXlpZWJxdWdrZmV6a3RrbnBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NzQxODIsImV4cCI6MjA5NTE1MDE4Mn0.r0PUT2nUz7Z-dBVbZlDHm1J9uqpcJ4O2fB6JJUmfN_o';
@@ -1372,48 +1375,40 @@ async function loadAll() {
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────
 let days = [
-  {id:'d0', name:'Vie 08', shifts:['A','B']},
-  {id:'d1', name:'Sáb 09', shifts:['A','B']},
-  {id:'d2', name:'Dom 10', shifts:['A','B']},
-  {id:'d3', name:'Lun 11', shifts:['A','B']},
-  {id:'d4', name:'Mar 12', shifts:['A','B']},
-  {id:'d5', name:'Mié 13', shifts:['A','B']},
-  {id:'d6', name:'Jue 14', shifts:['A','B']},
+  {id:'d0', name:'Jue 29', date: new Date(2025,4,29), shifts:['A','B']},
+  {id:'d1', name:'Vie 30', date: new Date(2025,4,30), shifts:['A','B']},
+  {id:'d2', name:'Sáb 31', date: new Date(2025,4,31), shifts:['A','B']},
+  {id:'d3', name:'Dom 01', date: new Date(2025,5,1),  shifts:['A','B']},
+  {id:'d4', name:'Lun 02', date: new Date(2025,5,2),  shifts:['A','B']},
+  {id:'d5', name:'Mar 03', date: new Date(2025,5,3),  shifts:['A','B']},
+  {id:'d6', name:'Mié 04', date: new Date(2025,5,4),  shifts:['A','B']},
 ];
 
 let activities = [
-  {id:1,fase:'F9SE',banco:'B2825',act:'Patio 3 — Entregado, perfor...',equip:'P&T',cat:'Prep. y Tronadura',estado:'ok',pct:90,resp:'Carlos M.',desc:'Perforación y entrega de patio para siguiente fase.',comment:'',impact:'',img:null,
-    cells:{d0:{A:{plan:true,reprg:false},B:{plan:false,reprg:true}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{}}},
-  {id:2,fase:'F9SE',banco:'B2810',act:'Patio 4 — Entregado, perfor...',equip:'P&T',cat:'Prep. y Tronadura',estado:'ok',pct:100,resp:'Carlos M.',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{A:{plan:true,reprg:false}},d1:{A:{plan:true,reprg:false}},d2:{},d3:{},d4:{},d5:{},d6:{}}},
-  {id:3,fase:'F9SE',banco:'B2825',act:'Patio 5 — Limpieza GAP post t...',equip:'Equipo Mina',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{},d4:{A:{plan:true,reprg:false}},d5:{},d6:{}}},
-  {id:4,fase:'F9SE',banco:'B2810',act:'Patio 6 — Entrega patio total',equip:'SSMM y P&T',cat:'Prep. y Tronadura',estado:'plan',pct:25,resp:'Ana R.',desc:'Entrega completa del patio 6.',comment:'',impact:'',img:null,
-    cells:{d0:{A:{plan:true,reprg:false},B:{plan:true,reprg:false}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{A:{plan:true,reprg:false}}}},
-  {id:5,fase:'F9SE',banco:'B2825',act:'Patio 7 — Entrega patio total',equip:'SSMM y P&T',cat:'Prep. y Tronadura',estado:'atr',pct:60,resp:'Ana R.',desc:'',comment:'Retraso por falla en equipo DDMM.',impact:'Impacto en preparación de siguiente frente.',img:null,
-    cells:{d0:{},d1:{},d2:{A:{plan:true,reprg:true},B:{plan:false,reprg:true}},d3:{},d4:{},d5:{},d6:{}}},
-  {id:6,fase:'F9SE',banco:'B2810',act:'Patio 8 — Entrega patio total',equip:'SSMM y P&T',cat:'Prep. y Tronadura',estado:'atr',pct:15,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{},d4:{A:{plan:false,reprg:true}},d5:{},d6:{}}},
-  {id:7,fase:'F9SE',banco:'B2825',act:'Desborde',equip:'Bull',cat:'Prep. y Tronadura',estado:'crit',pct:25,resp:'Pedro L.',desc:'',comment:'Desborde inesperado en sector norte.',impact:'Paralización de tronadura 72h.',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{},d4:{},d5:{B:{plan:false,reprg:true}},d6:{}}},
-  {id:8,fase:'F9SE',banco:'—',act:'Tronadura F9SE — 257 kt',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'ok',pct:100,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{A:{plan:true,reprg:false}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{}}},
-  {id:9,fase:'F11W',banco:'—',act:'Tronadura F11W — 933 kt',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'ok',pct:100,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{A:{plan:true,reprg:false}},d2:{},d3:{},d4:{},d5:{},d6:{}}},
-  {id:10,fase:'F9SE',banco:'—',act:'Tronadura F9SE — 343 kt',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'atr',pct:70,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{A:{plan:true,reprg:true}},d3:{},d4:{},d5:{},d6:{}}},
-  {id:11,fase:'F12N',banco:'—',act:'Tronadura F12N 524 kt + F9S...',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{A:{plan:true,reprg:false}},d4:{},d5:{},d6:{}}},
-  {id:12,fase:'F11W',banco:'—',act:'Tronadura F11W 477kt + F9SE...',equip:'Tronadura',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{},d4:{},d5:{A:{plan:true,reprg:false}},d6:{}}},
-  {id:13,fase:'F11W',banco:'B3125',act:'Patio 1 — Entrega patio total',equip:'SSMM',cat:'Prep. y Tronadura',estado:'plan',pct:10,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{},d4:{A:{plan:true,reprg:false}},d5:{},d6:{}}},
-  {id:14,fase:'F11W',banco:'B3095',act:'Patio 3 — Entregado, perfor...',equip:'P&T',cat:'Prep. y Tronadura',estado:'atr',pct:95,resp:'Juan V.',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{A:{plan:true,reprg:false},B:{plan:false,reprg:true}},d1:{},d2:{},d3:{},d4:{},d5:{},d6:{}}},
-  {id:15,fase:'F11W',banco:'B3110',act:'Patio 5 — Entrega patio total',equip:'SSMM',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{A:{plan:true,reprg:false}},d3:{},d4:{},d5:{},d6:{}}},
-  {id:16,fase:'F11W',banco:'B3110',act:'Patio 9 — Entrega patio total',equip:'SSMM',cat:'Prep. y Tronadura',estado:'plan',pct:0,resp:'',desc:'',comment:'',impact:'',img:null,
-    cells:{d0:{},d1:{},d2:{},d3:{},d4:{},d5:{A:{plan:true,reprg:false}},d6:{}}},
+  {id:1, fase:'F9SE', banco:'B2825', act:'Tronadura F9SE — Sector Norte',
+   equip:'Tronadura', cat:'P&T', estado:'plan', pct:0,
+   resp:'', desc:'', comment:'', impact:'', img:null,
+   cells:{
+     d0:{A:{plan:true,reprg:false},B:{plan:false,reprg:false}},
+     d1:{}, d2:{}, d3:{}, d4:{}, d5:{}, d6:{}
+   }},
+  {id:2, fase:'F11W', banco:'B3095', act:'Entrega Patio 3 — Perforación completa',
+   equip:'P&T', cat:'P&T', estado:'plan', pct:0,
+   resp:'', desc:'', comment:'', impact:'', img:null,
+   cells:{
+     d0:{}, d1:{},
+     d2:{A:{plan:true,reprg:false},B:{plan:true,reprg:false}},
+     d3:{}, d4:{}, d5:{}, d6:{}
+   }},
+  {id:3, fase:'F12N', banco:'—', act:'Limpieza GAP post tronadura',
+   equip:'Equipo Mina', cat:'Servicios Mina', estado:'plan', pct:0,
+   resp:'', desc:'', comment:'', impact:'', img:null,
+   cells:{
+     d0:{}, d1:{}, d2:{}, d3:{},
+     d4:{A:{plan:true,reprg:false}},
+     d5:{A:{plan:true,reprg:false}},
+     d6:{}
+   }},
 ];
 
 // ─── CALENDAR DATE PICKER ────────────────────────────────────────────
@@ -1583,7 +1578,7 @@ function initDayVisible() {
     // attach date objects to initial days based on current month
     if (!d.date) {
       // initial days use May 2025 reference week (Vie 08 = May 8 2025, etc.)
-      const refMap = {d0:new Date(2025,4,8),d1:new Date(2025,4,9),d2:new Date(2025,4,10),d3:new Date(2025,4,11),d4:new Date(2025,4,12),d5:new Date(2025,4,13),d6:new Date(2025,4,14)};
+      const refMap = {d0:new Date(2025,4,29),d1:new Date(2025,4,30),d2:new Date(2025,4,31),d3:new Date(2025,5,1),d4:new Date(2025,5,2),d5:new Date(2025,5,3),d6:new Date(2025,5,4)};
       if (refMap[d.id]) d.date = refMap[d.id];
     }
   });
@@ -1595,7 +1590,7 @@ function initDayVisible() {
 
 function visibleDays() { return days.filter(d => dayVisible[d.id] !== false); }
 
-let nextId = 17;
+let nextId = 4;
 let editingId = null;
 let pendingImgRowId = null;
 const AVATAR_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'];
@@ -2340,7 +2335,7 @@ function pickImage(id) {
   fi.value = '';
   fi.click();
 }
-document.getElementById('fileInput').addEventListener('change', function() {
+if(document.getElementById('fileInput')) document.getElementById('fileInput').addEventListener('change', function() {
   const file = this.files[0];
   if (!file || pendingImgRowId === null) return;
   const reader = new FileReader();
@@ -2358,7 +2353,7 @@ function viewImg(src) {
 }
 
 // ─── CLOSE MODALS ON OVERLAY CLICK ───────────────────────────────────
-document.getElementById('activityModal').addEventListener('click', function(e) {
+if(document.getElementById('activityModal')) document.getElementById('activityModal').addEventListener('click', function(e) {
   if (e.target === this) closeActivityModal();
 });
 // ─── THREATS ─────────────────────────────────────────────────────────
@@ -2463,7 +2458,7 @@ function renderThreats() {
       </div>
     </div>`).join('');
 }
-document.getElementById('threatModal').addEventListener('click', function(e) {
+if(document.getElementById('threatModal')) document.getElementById('threatModal').addEventListener('click', function(e) {
   if (e.target === this) closeThreatModal();
 });
 
@@ -2615,7 +2610,7 @@ function renderDeviations() {
       </div>
     </div>`).join('');
 }
-document.getElementById('deviationModal').addEventListener('click', function(e) {
+if(document.getElementById('deviationModal')) document.getElementById('deviationModal').addEventListener('click', function(e) {
   if (e.target === this) closeDeviationModal();
 });
 
@@ -3144,7 +3139,7 @@ function renderQuiebres() {
       </div>
     </div>`).join('');
 }
-document.getElementById('quiebreModal').addEventListener('click', function(e) {
+if(document.getElementById('quiebreModal')) document.getElementById('quiebreModal').addEventListener('click', function(e) {
   if(e.target===this) closeQuiebreModal();
 });
 
@@ -3433,9 +3428,7 @@ function renderGeoImageList() {
       </div>
     </div>`).join('');
 }
-document.getElementById('geoImageModal').addEventListener('click', function(e) {
-  if(e.target===this) closeGeoImageModal();
-});
+// geoImageModal removed
 
 // ─── COMPLIANCE INLINE TOGGLE ────────────────────────────────────────
 function toggleComplianceInline() {
@@ -3630,7 +3623,7 @@ function renderGeoLibGrid() {
     </div>`).join('');
 }
 
-document.getElementById('geoLibModal').addEventListener('click', function(e) { if(e.target===this) closeGeoLibModal(); });
+if(document.getElementById('geoLibModal')) document.getElementById('geoLibModal').addEventListener('click', function(e) { if(e.target===this) closeGeoLibModal(); });
 
 // ─── INIT ─────────────────────────────────────────────────────────────
 (async function boot() {
