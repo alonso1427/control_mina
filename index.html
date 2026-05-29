@@ -228,6 +228,26 @@
   }
   .threat-tag.resp { background: #ede9fe; color: #5b21b6; }
   .threat-tag.impact { background: #fee2e2; color: #991b1b; }
+  /* Campo de texto completo (impacto, acción) */
+  .threat-field-block {
+    margin: 5px 0 0 0; padding: 6px 10px;
+    background: #fafaf8; border-left: 3px solid #e5e7eb;
+    border-radius: 0 4px 4px 0;
+  }
+  .threat-field-label {
+    display: block; font-size: 10px; font-weight: 600;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em;
+    margin-bottom: 3px;
+  }
+  .threat-field-text {
+    font-size: 12px; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+  }
+  /* Descripción sin recorte */
+  .threat-desc {
+    font-size: 12px; color: var(--text-muted); line-height: 1.5;
+    margin-bottom: 4px; padding-left: 16px;
+    white-space: pre-wrap; word-break: break-word;
+  }
   .threat-empty {
     text-align: center; padding: 40px 16px; color: var(--text-faint); font-size: 12px;
     display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -749,42 +769,8 @@
 </head>
 <body>
 
-<!-- ══ LOGIN SCREEN ══ -->
-<div id="loginScreen" style="position:fixed;inset:0;background:#1e1d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;">
-  <div style="text-align:center;margin-bottom:32px;">
-    <!-- AMSA Logo SVG -->
-    <svg width="180" height="60" viewBox="0 0 180 60" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;">
-      <rect x="0" y="0" width="180" height="60" rx="6" fill="#c8a84b"/>
-      <text x="90" y="22" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="13" font-weight="700" fill="#1e1d1a" text-anchor="middle" letter-spacing="3">AMSA</text>
-      <text x="90" y="38" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="8" font-weight="500" fill="#1e1d1a" text-anchor="middle" letter-spacing="1.5">MINERA LOS PELAMBRES</text>
-      <line x1="16" y1="44" x2="164" y2="44" stroke="#1e1d1a" stroke-width="0.8" opacity="0.5"/>
-      <text x="90" y="54" font-family="'IBM Plex Sans',Arial,sans-serif" font-size="7" fill="#1e1d1a" text-anchor="middle" letter-spacing="1" opacity="0.7">PROGRAMA OPERATIVO</text>
-    </svg>
-    <div style="color:#a8a59f;font-size:12px;letter-spacing:.05em;">Planificación Mina — Acceso Seguro</div>
-  </div>
-  <div style="background:#2a2927;border:1px solid #3a3936;border-radius:10px;padding:32px 36px;width:320px;">
-    <div style="margin-bottom:16px;">
-      <label style="display:block;font-size:11px;color:#a8a59f;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;">Usuario</label>
-      <input id="loginUser" type="text" placeholder="Usuario" autocomplete="username"
-        style="width:100%;padding:9px 12px;border-radius:5px;border:1px solid #3a3936;background:#1e1d1a;color:#f5f4f1;font-size:13px;font-family:inherit;outline:none;"
-        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
-    </div>
-    <div style="margin-bottom:20px;">
-      <label style="display:block;font-size:11px;color:#a8a59f;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;">Contraseña</label>
-      <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password"
-        style="width:100%;padding:9px 12px;border-radius:5px;border:1px solid #3a3936;background:#1e1d1a;color:#f5f4f1;font-size:13px;font-family:inherit;outline:none;"
-        onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button onclick="doLogin()"
-      style="width:100%;padding:10px;background:#c8a84b;color:#1e1d1a;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.03em;">
-      Ingresar
-    </button>
-    <div id="loginError" style="color:#f87171;font-size:12px;text-align:center;margin-top:10px;display:none;">Usuario o contraseña incorrectos</div>
-  </div>
-</div>
-
 <!-- ══ APP SHELL (hidden until login) ══ -->
-<div id="appShell" style="display:none;">
+<div id="appShell" style="display:block;">
 
 <!-- TABS BAR -->
 <div style="background:#1e1d1a;display:flex;align-items:flex-end;padding:0 20px;gap:2px;border-bottom:2px solid #c8a84b;">
@@ -798,7 +784,6 @@
   </div>
   <button class="app-tab active" id="tab-gantt" onclick="switchTab('gantt')">📊 Carta Gantt</button>
   <button class="app-tab" id="tab-produccion" onclick="switchTab('produccion')">⛏ Producción</button>
-  <button class="app-tab" id="tab-geotecnia" onclick="switchTab('geotecnia')">🪨 Geotecnia</button>
   <button class="app-tab" id="tab-quiebre" onclick="switchTab('quiebre')">📉 Quiebre de Plan</button>
   <button class="app-tab" id="tab-amenazas" onclick="switchTab('amenazas')">⚠️ Amenazas / Desviaciones</button>
   <div style="flex:1"></div>
@@ -808,7 +793,6 @@
     style="font-size:11px;font-weight:600;background:#c8a84b;color:#1e1d1a;border:none;padding:5px 14px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;display:flex;align-items:center;gap:5px;">
     💾 Guardar cambios
   </button>
-  <button onclick="doLogout()" style="font-size:11px;background:none;border:1px solid #3a3936;color:#a8a59f;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-bottom:5px;margin-left:6px;">Cerrar sesión</button>
 </div>
 
 <!-- TAB CONTENTS -->
@@ -1111,46 +1095,6 @@
 </div>
 </div>
 
-<!-- TAB: Geotecnia -->
-<div id="page-geotecnia" class="tab-page" style="display:none;">
-<div style="background:var(--header-bg);color:var(--header-text);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;">
-  <span style="font-size:15px;font-weight:600;">🪨 Geotecnia — Biblioteca de Imágenes</span>
-  <div style="flex:1"></div>
-  <button onclick="openGeoLibModal()" style="font-size:12px;padding:5px 14px;background:#c8a84b;color:#1e1d1a;border:none;border-radius:4px;cursor:pointer;font-weight:700;font-family:inherit;">＋ Nueva Imagen</button>
-</div>
-
-<!-- Filters -->
-<div style="padding:8px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-  <span style="font-size:11px;font-weight:600;color:var(--text-muted);">Fase:</span>
-  <div id="geoLibFaseFilter" style="display:flex;gap:5px;flex-wrap:wrap;">
-    <button onclick="setGeoLibFase('all')" id="glf-all" class="geo-lib-fbtn active">Todas</button>
-    <button onclick="setGeoLibFase('F9SE')" id="glf-F9SE" class="geo-lib-fbtn">F9SE</button>
-    <button onclick="setGeoLibFase('F10N')" id="glf-F10N" class="geo-lib-fbtn">F10N</button>
-    <button onclick="setGeoLibFase('F11W')" id="glf-F11W" class="geo-lib-fbtn">F11W</button>
-    <button onclick="setGeoLibFase('F12N')" id="glf-F12N" class="geo-lib-fbtn">F12N</button>
-    <button onclick="setGeoLibFase('F12E')" id="glf-F12E" class="geo-lib-fbtn">F12E</button>
-    <button onclick="setGeoLibFase('Fuera de Fase')" id="glf-FdF" class="geo-lib-fbtn">Fuera de Fase</button>
-  </div>
-  <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
-  <span style="font-size:11px;font-weight:600;color:var(--text-muted);">Tipo:</span>
-  <button onclick="setGeoLibTipo('all')" id="glt-all" class="geo-lib-fbtn active">Todos</button>
-  <button onclick="setGeoLibTipo('trabajo')" id="glt-trabajo" class="geo-lib-fbtn">🔧 Trabajo</button>
-  <button onclick="setGeoLibTipo('hazard')" id="glt-hazard" class="geo-lib-fbtn">⚠️ Hazard</button>
-  <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
-  <button onclick="setGeoLibVigencia('all')" id="glv-all" class="geo-lib-fbtn active">Vigentes+Inactivas</button>
-  <button onclick="setGeoLibVigencia('active')" id="glv-active" class="geo-lib-fbtn">Solo Vigentes</button>
-  <span id="geoLibCount" style="margin-left:auto;font-size:11px;color:var(--text-muted);"></span>
-</div>
-
-<!-- Grid -->
-<div id="geoLibGrid" style="padding:16px 20px;overflow-y:auto;height:calc(100vh - 140px);display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;align-content:start;">
-  <div class="threat-empty" style="grid-column:1/-1;"><span class="big">🪨</span><span>Sin imágenes cargadas. Haz clic en "＋ Nueva Imagen".</span></div>
-</div>
-</div>
-
-</div>
-
-
 <!-- TAB: Quiebre de Plan -->
 <div id="page-quiebre" class="tab-page" style="display:none;">
 <div style="background:var(--header-bg);color:var(--header-text);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;">
@@ -1304,109 +1248,6 @@
 
 </div><!-- /appShell -->
 
-<!-- MODAL: Nueva Imagen Geotecnia Library -->
-<div class="modal-overlay hidden" id="geoLibModal">
-  <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
-    <div class="modal-header">
-      <h3 id="geoLibModalTitle">Nueva Imagen — Geotecnia</h3>
-      <button class="modal-close" onclick="closeGeoLibModal()">✕</button>
-    </div>
-    <div class="modal-body">
-
-      <!-- 1. Imagen -->
-      <div class="field full">
-        <label>Imagen <span style="color:#aaa;font-weight:400;">(requerida)</span></label>
-        <div id="geoLibPreviewWrap"
-          style="border:2px dashed var(--border);border-radius:6px;padding:16px;text-align:center;cursor:pointer;min-height:100px;display:flex;align-items:center;justify-content:center;background:#fafaf8;transition:border-color .15s;"
-          onclick="document.getElementById('geoLibFileInput').click()"
-          onmouseover="this.style.borderColor='#c8a84b'" onmouseout="this.style.borderColor='var(--border)'">
-          <img id="geoLibPreview" src="" style="max-width:100%;max-height:200px;display:none;border-radius:4px;">
-          <div id="geoLibImgPlaceholder" style="color:var(--text-faint);font-size:13px;">
-            <div style="font-size:28px;margin-bottom:6px;">📷</div>
-            Clic para seleccionar imagen
-          </div>
-        </div>
-        <input type="file" id="geoLibFileInput" accept="image/*" style="display:none" onchange="previewGeoLibImg(event)">
-      </div>
-
-      <!-- 2. Título -->
-      <div class="field full">
-        <label>Título</label>
-        <input id="geoLibName" placeholder="Ej: Talud F9SE — Sector Norte">
-      </div>
-
-      <!-- 3. Detalle de actividad -->
-      <div class="field full">
-        <label>Detalle de actividad</label>
-        <textarea id="geoLibDesc" rows="3" placeholder="Describe la actividad, condición o situación observada…"></textarea>
-      </div>
-
-      <!-- 4. Categoría Hazard -->
-      <div class="field full">
-        <label>Categoría</label>
-        <div style="display:flex;gap:10px;margin-top:4px;">
-          <label style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;flex:1;font-weight:400;text-transform:none;transition:all .15s;" id="lblTrabajo">
-            <input type="radio" name="geoLibTipoR" value="trabajo" id="rTrabajo" onchange="geoLibSelectTipo('trabajo')" style="cursor:pointer;">
-            <span>🔧 Trabajo</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;flex:1;font-weight:400;text-transform:none;transition:all .15s;" id="lblHazard">
-            <input type="radio" name="geoLibTipoR" value="hazard" id="rHazard" onchange="geoLibSelectTipo('hazard')" style="cursor:pointer;">
-            <span>⚠️ Hazard</span>
-          </label>
-        </div>
-        <input type="hidden" id="geoLibTipo" value="trabajo">
-      </div>
-
-      <!-- 5. Fecha de actividad -->
-      <div class="field">
-        <label>Fecha de actividad</label>
-        <input type="date" id="geoLibFecha">
-      </div>
-
-      <!-- 6. Fase (opcional) -->
-      <div class="field">
-        <label>Fase <span style="color:#aaa;font-weight:400;">(opcional)</span></label>
-        <select id="geoLibFase">
-          <option value="">— Seleccionar —</option>
-          <option value="F9SE">F9SE</option>
-          <option value="F10N">F10N</option>
-          <option value="F11W">F11W</option>
-          <option value="F12N">F12N</option>
-          <option value="F12E">F12E</option>
-          <option value="Fuera de Fase">Fuera de Fase</option>
-        </select>
-      </div>
-
-      <!-- 7. Observaciones -->
-      <div class="field full">
-        <label>Observaciones</label>
-        <textarea id="geoLibComentario" rows="2" placeholder="Observaciones adicionales, riesgos, recomendaciones…"></textarea>
-      </div>
-
-      <!-- hidden for compat -->
-      <input type="hidden" id="geoLibPendientes" value="">
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeGeoLibModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveGeoLibImage()">Guardar imagen</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Ver imagen grande geotecnia -->
-<div class="modal-overlay hidden" id="geoLibViewModal" onclick="this.classList.add('hidden')" style="background:rgba(0,0,0,.85);">
-  <div onclick="event.stopPropagation()" style="background:#fff;border-radius:8px;max-width:90vw;max-height:90vh;overflow:auto;padding:20px;position:relative;">
-    <button onclick="document.getElementById('geoLibViewModal').classList.add('hidden')" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#666;">✕</button>
-    <div style="display:flex;gap:20px;flex-wrap:wrap;">
-      <img id="geoLibViewImg" src="" style="max-width:60vw;max-height:70vh;object-fit:contain;border-radius:4px;flex-shrink:0;">
-      <div id="geoLibViewInfo" style="min-width:200px;max-width:280px;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ SUPABASE SDK ═══ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPA_URL = 'https://awiyiebqugkfezktknpc.supabase.co';
 const SUPA_KEY = 'sb_publishable_Wra2GGprwwSDrXP-MJb_Ng_kI3rKzkp';
@@ -2612,12 +2453,13 @@ function renderThreats() {
         </div>
       </div>
       ${t.solved?`<div style="font-size:10px;color:#10b981;font-weight:600;padding-left:16px;margin-bottom:4px;">✅ Solucionada</div>`:''}
-      ${t.desc ? `<div class="threat-desc">${t.desc}</div>` : ''}
-      <div class="threat-meta">
+      ${t.desc   ? `<div class="threat-desc">${t.desc}</div>` : ''}
+      ${t.impact ? `<div class="threat-field-block"><span class="threat-field-label">⚡ Impacto</span><div class="threat-field-text">${t.impact}</div></div>` : ''}
+      ${t.action ? `<div class="threat-field-block"><span class="threat-field-label">🎯 Acción</span><div class="threat-field-text">${t.action}</div></div>` : ''}
+      <div class="threat-meta" style="margin-top:6px;">
         <span class="threat-tag">${sevLabel[t.sev]}</span>
-        ${t.impact ? `<span class="threat-tag impact">⚡ ${t.impact.slice(0,40)}${t.impact.length>40?'…':''}</span>` : ''}
-        ${t.resp   ? `<span class="threat-tag resp">👤 ${t.resp}</span>` : ''}
-        ${t.date   ? `<span class="threat-tag">📅 ${t.date}</span>` : ''}
+        ${t.resp ? `<span class="threat-tag resp">👤 ${t.resp}</span>` : ''}
+        ${t.date ? `<span class="threat-tag">📅 ${t.date}</span>` : ''}
       </div>
     </div>`).join('');
 }
@@ -2763,12 +2605,13 @@ function renderDeviations() {
         </div>
       </div>
       ${d.solved?`<div style="font-size:10px;color:#10b981;font-weight:600;padding-left:16px;margin-bottom:4px;">✅ Solucionada</div>`:''}
-      ${d.desc ? `<div class="threat-desc">${d.desc}</div>` : ''}
-      <div class="threat-meta">
+      ${d.desc   ? `<div class="threat-desc">${d.desc}</div>` : ''}
+      ${d.impact ? `<div class="threat-field-block"><span class="threat-field-label">⚡ Impacto</span><div class="threat-field-text">${d.impact}</div></div>` : ''}
+      ${d.action ? `<div class="threat-field-block"><span class="threat-field-label">🎯 Acción</span><div class="threat-field-text">${d.action}</div></div>` : ''}
+      <div class="threat-meta" style="margin-top:6px;">
         <span class="threat-tag">${sevLabelD[d.sev]}</span>
-        ${d.impact ? `<span class="threat-tag impact">⚡ ${d.impact.slice(0,40)}${d.impact.length>40?'…':''}</span>` : ''}
-        ${d.resp   ? `<span class="threat-tag resp">👤 ${d.resp}</span>` : ''}
-        ${d.date   ? `<span class="threat-tag">📅 ${d.date}</span>` : ''}
+        ${d.resp ? `<span class="threat-tag resp">👤 ${d.resp}</span>` : ''}
+        ${d.date ? `<span class="threat-tag">📅 ${d.date}</span>` : ''}
       </div>
     </div>`).join('');
 }
@@ -3292,9 +3135,10 @@ function renderQuiebres() {
       </div>
       ${q.solved?`<div style="font-size:10px;color:#10b981;font-weight:600;padding-left:16px;margin-bottom:4px;">✅ Solucionado</div>`:''}
       ${q.desc?`<div class="threat-desc">${q.desc}</div>`:''}
-      <div class="threat-meta">
+      ${q.impact?`<div class="threat-field-block"><span class="threat-field-label">⚡ Impacto</span><div class="threat-field-text">${q.impact}</div></div>`:''}
+      ${q.action?`<div class="threat-field-block"><span class="threat-field-label">🎯 Acción</span><div class="threat-field-text">${q.action}</div></div>`:''}
+      <div class="threat-meta" style="margin-top:6px;">
         <span class="threat-tag">${sevLabel[q.sev]}</span>
-        ${q.impact?`<span class="threat-tag impact">⚡ ${q.impact.slice(0,40)}${q.impact.length>40?'…':''}</span>`:''}
         ${q.resp?`<span class="threat-tag resp">👤 ${q.resp}</span>`:''}
         ${q.date?`<span class="threat-tag">📅 ${q.date}</span>`:''}
       </div>
@@ -3789,8 +3633,20 @@ function renderGeoLibGrid() {
 document.getElementById('geoLibModal').addEventListener('click', function(e) { if(e.target===this) closeGeoLibModal(); });
 
 // ─── INIT ─────────────────────────────────────────────────────────────
-// Render skeleton only; real data loads after login
-document.getElementById('loginUser').focus();
+(async function boot() {
+  setSaveState('saving');
+  document.getElementById('saveIndicator').textContent = '⏳ Cargando datos…';
+  await loadAll();
+  initDayVisible();
+  render();
+  renderThreats();
+  renderDeviations();
+  renderQuiebres();
+  updateCompliance();
+  updateFaseMsBtn();
+  initProdDays();
+  renderProdTable();
+})();
 
 // ─── LOGIN ────────────────────────────────────────────────────────────
 async function doLogin() {
@@ -3844,7 +3700,6 @@ function switchTab(tab) {
   if (btn) btn.classList.add('active');
   if (tab === 'produccion') { initProdDays(); renderProdTable(); buildProdCal(); }
   if (tab === 'amenazas')   { renderThreats(); renderDeviations(); }
-  if (tab === 'geotecnia')  { renderGeoLibGrid(); }
   if (tab === 'quiebre')    { renderQuiebres(); }
 }
 </script>
